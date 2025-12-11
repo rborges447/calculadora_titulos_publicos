@@ -4,5 +4,3 @@ include setup.py
 include pyproject.toml
 recursive-include titulospub *.py
 
-
-

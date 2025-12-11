@@ -1,166 +1,59 @@
 """
-Página NTNB - cálculo e hedge via API.
+Página NTNB - tabela editável usando carteiras.
 """
 
-from datetime import date
-from dash import html, dcc, Input, Output, State, callback
+from dash import html, dcc, Input, Output, State, callback, dash_table
 import dash_bootstrap_components as dbc
 
-from dash_app.utils.api import post
-from dash_app.utils.vencimentos import get_vencimentos_ntnb, formatar_data_para_exibicao
-
-
-def _form_calculo():
-    return dbc.Card(
-        dbc.CardBody(
-            [
-                html.H4("Calcular NTNB", className="mb-3"),
-                dbc.Row(
-                    [
-                        dbc.Col(
-                            [
-                                dbc.Label("Data de vencimento"),
-                                dcc.Dropdown(
-                                    id="ntnb-date",
-                                    options=[],
-                                    placeholder="Selecione o vencimento...",
-                                    className="mb-3",
-                                ),
-                            ],
-                            md=4,
-                        ),
-                        dbc.Col(
-                            [
-                                dbc.Label("Dias para liquidação"),
-                                dbc.Input(
-                                    id="ntnb-dias",
-                                    type="number",
-                                    value=1,
-                                    min=0,
-                                    className="mb-3",
-                                ),
-                            ],
-                            md=4,
-                        ),
-                        dbc.Col(
-                            [
-                                dbc.Label("Taxa (%)"),
-                                dbc.Input(
-                                    id="ntnb-taxa",
-                                    type="number",
-                                    value=0.0,
-                                    step=0.01,
-                                    className="mb-3",
-                                ),
-                            ],
-                            md=4,
-                        ),
-                    ]
-                ),
-                dbc.Row(
-                    [
-                        dbc.Col(
-                            [
-                                dbc.Label("Quantidade"),
-                                dbc.Input(
-                                    id="ntnb-quantidade",
-                                    type="number",
-                                    value=0.0,
-                                    step=1,
-                                    className="mb-3",
-                                ),
-                            ],
-                            md=6,
-                        ),
-                        dbc.Col(
-                            [
-                                dbc.Label("Valor financeiro (R$)"),
-                                dbc.Input(
-                                    id="ntnb-financeiro",
-                                    type="number",
-                                    value=0.0,
-                                    step=1000,
-                                    className="mb-3",
-                                ),
-                            ],
-                            md=6,
-                        ),
-                    ]
-                ),
-                dbc.Button("Calcular", id="ntnb-btn", color="primary"),
-            ]
-        )
-    )
-
-
-def _resultado_card(res: dict, titulo: str):
-    dias_liq = res.get("dias_liquidacao") or res.get("dias_liq") or 1
-    label_pu_termo = f"PU D{dias_liq}"
-    label_cotacao = f"Cotação D{dias_liq}"
-
-    def _fmt(valor, fmt, default="0"):
-        try:
-            if valor is None:
-                valor = default
-            return format(valor, fmt) if isinstance(valor, (int, float)) else str(valor)
-        except Exception:
-            return str(default)
-
-    metrics = [
-        ("Data de Liquidação", res.get("data_liquidacao", "-")),
-        ("Quantidade", _fmt(res.get("quantidade", 0), ",.0f")),
-        ("Financeiro", f"R$ {_fmt(res.get('financeiro', 0), ',.2f')}"),
-        ("Taxa", f"{_fmt(res.get('taxa', 0), '.4f')}%"),
-        ("PU D0", _fmt(res.get("pu_d0", 0), ".6f")),
-        (label_pu_termo, _fmt(res.get("pu_termo", 0), ".6f")),
-        (label_cotacao, _fmt(res.get("cotacao", 0), ".6f")),
-        ("PU Carregado", _fmt(res.get("pu_carregado", 0), ".6f")),
-        ("DV01 BRL", _fmt(res.get("dv01", 0), ",.2f")),
-        ("Carrego BRL", f"R$ {_fmt(res.get('carrego_brl', 0), ',.2f')}"),
-        ("Carrego BPS", _fmt(res.get("carrego_bps", 0), ".2f")),
-        ("Hedge DAP", _fmt(res.get("hedge_dap", 0), ",.0f")),
-    ]
-
-    def _metric_card(label, value):
-        return dbc.Col(
-            dbc.Card(
-                dbc.CardBody(
-                    [
-                        html.Small(label, className="text-muted"),
-                        html.H5(value, className="mb-0"),
-                    ]
-                ),
-                className="h-100 shadow-sm",
-            ),
-            md=3,
-            sm=6,
-            xs=12,
-        )
-
-    # Distribuir em linhas de 4 colunas no desktop
-    rows = []
-    for i in range(0, len(metrics), 4):
-        chunk = metrics[i : i + 4]
-        rows.append(dbc.Row([_metric_card(lbl, val) for lbl, val in chunk], className="g-3"))
-
-    return dbc.Card(
-        [
-            dbc.CardHeader(titulo),
-            dbc.CardBody(rows),
-        ],
-        className="mt-3",
-    )
+from dash_app.utils.carteiras import criar_carteira, atualizar_taxa, atualizar_dias_liquidacao
+from dash_app.utils.vencimentos import formatar_data_para_exibicao
 
 
 def layout():
     return dbc.Container(
         [
-            dcc.Store(id="ntnb-trigger", data=0),
-            html.H2("NTNB"),
-            html.P("Calcule NTNB consumindo a API."),
-            _form_calculo(),
-            html.Div(id="ntnb-resultado", className="mt-3"),
+            dcc.Store(id="ntnb-carteira-id", data=None),
+            dcc.Store(id="ntnb-dados-originais", data=[]),
+            html.H2("NTNB - Nota do Tesouro Nacional - Série B"),
+            html.P("Edite as taxas na tabela para calcular os PU termo de cada vencimento."),
+            
+            dbc.Card(
+                dbc.CardBody(
+                    [
+                        html.H4("Parâmetros", className="mb-3"),
+                        dbc.Row(
+                            [
+                                dbc.Col(
+                                    [
+                                        dbc.Label("Dias para liquidação"),
+                                        dbc.Input(
+                                            id="ntnb-dias",
+                                            type="number",
+                                            value=1,
+                                            min=0,
+                                        ),
+                                    ],
+                                    md=4,
+                                ),
+                            ],
+                            className="mb-3",
+                        ),
+                    ]
+                ),
+                className="mb-4",
+            ),
+            
+            dbc.Card(
+                dbc.CardBody(
+                    [
+                        html.H4("Tabela de Vencimentos", className="mb-3"),
+                        html.Div(id="ntnb-tabela-container"),
+                    ]
+                ),
+            ),
+            
             html.Hr(className="my-4"),
+            
             dbc.Card(
                 dbc.CardBody(
                     [
@@ -190,55 +83,276 @@ def layout():
 
 
 @callback(
-    Output("ntnb-resultado", "children"),
-    Input("ntnb-btn", "n_clicks"),
-    State("ntnb-date", "value"),
-    State("ntnb-dias", "value"),
-    State("ntnb-taxa", "value"),
-    State("ntnb-quantidade", "value"),
-    State("ntnb-financeiro", "value"),
-    prevent_initial_call=True,
+    [
+        Output("ntnb-carteira-id", "data"),
+        Output("ntnb-dados-originais", "data"),
+        Output("ntnb-tabela-container", "children"),
+    ],
+    [
+        Input("ntnb-dias", "value"),
+    ],
+    State("ntnb-carteira-id", "data"),
+    prevent_initial_call=False,
 )
-def calcular_ntnb(n_clicks, data_venc, dias, taxa, quantidade, financeiro):
-    if not data_venc:
-        return dbc.Alert("Informe a data de vencimento", color="warning")
-    if not financeiro and not quantidade:
-        return dbc.Alert("Informe quantidade ou valor financeiro", color="warning")
-
-    payload = {"data_vencimento": data_venc, "dias_liquidacao": int(dias) if dias else 1}
-    if taxa:
-        payload["taxa"] = float(taxa)
-
-    if financeiro and financeiro > 0:
-        payload["financeiro"] = float(financeiro)
-    elif quantidade and quantidade > 0:
-        payload["quantidade"] = float(quantidade)
-
-    ok, res = post("/titulos/ntnb", payload)
-    if not ok:
-        return dbc.Alert(f"Erro: {res}", color="danger")
-    return _resultado_card(res, "Resultado do cálculo")
+def carregar_carteira(dias, carteira_id_existente):
+    """Carrega ou atualiza a carteira"""
+    from dash import ctx
+    
+    try:
+        # Permitir 0 como valor válido (dias or 1 trataria 0 como False)
+        dias = dias if dias is not None else 1
+        
+        # Se já existe uma carteira, atualizar os dias de liquidação
+        if carteira_id_existente:
+            print(f"[INFO] Atualizando dias de liquidação para {dias} na carteira existente...")
+            ok, resultado = atualizar_dias_liquidacao("ntnb", carteira_id_existente, dias)
+            if ok:
+                carteira_id = carteira_id_existente
+            else:
+                # Se falhou (ex: carteira não existe mais), criar nova
+                print(f"[INFO] Falha ao atualizar dias, criando nova carteira...")
+                ok, resultado = criar_carteira("ntnb", dias_liquidacao=dias)
+                if not ok:
+                    return None, [], html.P(f"Erro ao criar carteira: {resultado.get('error', 'Erro desconhecido')}", className="text-danger")
+                carteira_id = resultado.get("carteira_id")
+        else:
+            # Criar nova carteira
+            print(f"[INFO] Criando nova carteira com {dias} dias de liquidação...")
+            ok, resultado = criar_carteira("ntnb", dias_liquidacao=dias)
+            if not ok:
+                return None, [], html.P(f"Erro ao criar carteira: {resultado.get('error', 'Erro desconhecido')}", className="text-danger")
+            carteira_id = resultado.get("carteira_id")
+        
+        dados = [
+            {
+                "vencimento": formatar_data_para_exibicao(t["vencimento"]),
+                "vencimento_raw": t["vencimento"],
+                "taxa": t.get("taxa") or "",
+                "pu_termo": round(t.get("pu_termo"), 6) if t.get("pu_termo") else "",
+            }
+            for t in resultado["titulos"]
+        ]
+        
+        tabela = dash_table.DataTable(
+            id="ntnb-tabela",
+            columns=[
+                {"name": "Vencimento", "id": "vencimento", "editable": False},
+                {"name": "Taxa (%)", "id": "taxa", "editable": True, "type": "numeric", "format": {"specifier": ".4f"}},
+                {"name": "PU Termo", "id": "pu_termo", "editable": False, "type": "numeric", "format": {"specifier": ".6f"}},
+            ],
+            data=dados,
+            editable=True,
+            style_cell={"textAlign": "left", "padding": "10px"},
+            style_header={"backgroundColor": "#0d6efd", "color": "white", "fontWeight": "bold"},
+        )
+        
+        # Atualizar dados originais para comparação
+        return carteira_id, dados, tabela
+    except Exception as e:
+        print(f"[ERRO] Erro ao carregar carteira: {e}")
+        import traceback
+        traceback.print_exc()
+        return None, [], html.P(f"Erro ao carregar carteira: {e}", className="text-danger")
 
 
 @callback(
-    [Output("ntnb-date", "options"), Output("ntnb-trigger", "data")],
-    Input("ntnb-trigger", "data"),
-    prevent_initial_call=False,
+    [
+        Output("ntnb-tabela", "data", allow_duplicate=True),
+        Output("ntnb-carteira-id", "data", allow_duplicate=True),
+        Output("ntnb-dados-originais", "data", allow_duplicate=True),
+    ],
+    [
+        Input("ntnb-tabela", "data_timestamp"),
+    ],
+    [
+        State("ntnb-tabela", "data"),
+        State("ntnb-tabela", "active_cell"),
+        State("ntnb-carteira-id", "data"),
+        State("ntnb-dados-originais", "data"),
+        State("ntnb-dias", "value"),
+    ],
+    prevent_initial_call=True,
 )
-def carregar_vencimentos_ntnb(_):
-    """Carrega lista de vencimentos disponíveis para NTNB"""
+def atualizar_taxa_callback(timestamp, data_atual, active_cell, carteira_id, dados_originais, dias):
+    """Atualiza taxa quando editada"""
+    from dash import ctx
+    
+    # Se não há dados, retornar
+    if not data_atual:
+        return data_atual or [], carteira_id, dados_originais or []
+    
+    # Determinar qual linha foi editada usando o vencimento_raw, não o índice
+    row_idx = None
+    vencimento_raw = None
+    nova_taxa = None
+    col_id = None
+    
+    # Priorizar active_cell se disponível (mais confiável)
+    if active_cell:
+        row_idx = active_cell.get("row")
+        col_id = active_cell.get("column_id")
+        print(f"[DEBUG] active_cell detectado: row={row_idx}, col={col_id}")
+        if col_id != "taxa":
+            print(f"[DEBUG] Coluna editada não é 'taxa', ignorando")
+            return data_atual, carteira_id, dados_originais or []
+        
+        # Usar o vencimento_raw da linha editada para identificar o título correto
+        if row_idx is not None and row_idx < len(data_atual):
+            linha_editada = data_atual[row_idx]
+            vencimento_raw = linha_editada.get("vencimento_raw")
+            nova_taxa = linha_editada.get("taxa")
+            vencimento_exibicao = linha_editada.get("vencimento")
+            print(f"[DEBUG] Linha editada (índice {row_idx}): vencimento={vencimento_exibicao} ({vencimento_raw}), nova_taxa={nova_taxa}")
+            
+            # VALIDAÇÃO: Comparar com dados originais para garantir que estamos na linha certa
+            # Se a taxa na linha row_idx não mudou em relação aos dados originais, pode ser que
+            # o active_cell esteja apontando para a linha errada
+            if dados_originais and row_idx < len(dados_originais):
+                linha_original = dados_originais[row_idx]
+                taxa_original = str(linha_original.get("taxa", "")).strip()
+                taxa_atual = str(nova_taxa or "").strip()
+                
+                if taxa_original == taxa_atual:
+                    # A taxa não mudou nesta linha - procurar em todas as linhas qual realmente mudou
+                    print(f"[DEBUG] AVISO: Taxa na linha {row_idx} não mudou! Procurando em todas as linhas...")
+                    for i, (orig, atual) in enumerate(zip(dados_originais, data_atual)):
+                        taxa_orig = str(orig.get("taxa", "")).strip()
+                        taxa_at = str(atual.get("taxa", "")).strip()
+                        if taxa_orig != taxa_at:
+                            print(f"[DEBUG] Mudança encontrada na linha {i}: vencimento={atual.get('vencimento')} ({atual.get('vencimento_raw')}), taxa {taxa_orig} -> {taxa_at}")
+                            # Usar esta linha em vez da do active_cell
+                            vencimento_raw = atual.get("vencimento_raw")
+                            nova_taxa = atual.get("taxa")
+                            row_idx = i
+                            print(f"[DEBUG] Corrigido para linha {row_idx}, vencimento={vencimento_raw}")
+                            break
+        else:
+            print(f"[DEBUG] row_idx inválido do active_cell: {row_idx}")
+            return data_atual, carteira_id, dados_originais or []
+    else:
+        # Se não há active_cell, comparar com dados originais para encontrar mudança
+        print(f"[DEBUG] active_cell não disponível, comparando com dados originais")
+        if dados_originais and len(dados_originais) == len(data_atual):
+            mudancas = []
+            for i, (original, atual) in enumerate(zip(dados_originais, data_atual)):
+                taxa_original = str(original.get("taxa", "")).strip()
+                taxa_atual = str(atual.get("taxa", "")).strip()
+                if taxa_original != taxa_atual:
+                    venc_raw = atual.get("vencimento_raw")
+                    mudancas.append((i, taxa_original, taxa_atual, venc_raw))
+            
+            if len(mudancas) == 1:
+                # Apenas uma mudança - usar essa
+                row_idx = mudancas[0][0]
+                vencimento_raw = mudancas[0][3]
+                nova_taxa = mudancas[0][2]
+                print(f"[DEBUG] Uma mudança detectada: linha {row_idx}, vencimento={vencimento_raw}, taxa {mudancas[0][1]} -> {mudancas[0][2]}")
+            elif len(mudancas) > 1:
+                # Múltiplas mudanças - usar a última (mais recente)
+                row_idx = mudancas[-1][0]
+                vencimento_raw = mudancas[-1][3]
+                nova_taxa = mudancas[-1][2]
+                print(f"[DEBUG] Múltiplas mudanças detectadas ({len(mudancas)}), usando a última: linha {row_idx}, vencimento={vencimento_raw}")
+            else:
+                print(f"[DEBUG] Nenhuma mudança detectada na comparação")
+                return data_atual, carteira_id, dados_originais or []
+        else:
+            print(f"[DEBUG] Dados originais não disponíveis ou tamanhos diferentes")
+            return data_atual, carteira_id, dados_originais or []
+    
+    # Validar que temos os dados necessários
+    if not vencimento_raw:
+        print(f"[DEBUG] vencimento_raw não encontrado")
+        return data_atual, carteira_id, dados_originais or []
+    
+    if nova_taxa is None:
+        # Se não pegamos a taxa ainda, buscar da linha
+        if row_idx is not None and row_idx < len(data_atual):
+            nova_taxa = data_atual[row_idx].get("taxa")
+        else:
+            print(f"[DEBUG] Não foi possível determinar a nova taxa")
+            return data_atual, carteira_id, dados_originais or []
+    
+    # Encontrar o índice correto na lista atual usando vencimento_raw
+    # (caso a tabela tenha sido reordenada)
+    row_idx_correto = None
+    for i, linha in enumerate(data_atual):
+        if linha.get("vencimento_raw") == vencimento_raw:
+            row_idx_correto = i
+            break
+    
+    if row_idx_correto is None:
+        print(f"[DEBUG] Vencimento {vencimento_raw} não encontrado na lista atual")
+        return data_atual, carteira_id, dados_originais or []
+    
+    # Usar o índice correto
+    row_idx = row_idx_correto
+    linha = data_atual[row_idx]
+    vencimento_exibicao = linha.get("vencimento")
+    
+    print(f"[DEBUG] Linha corrigida: índice {row_idx}, vencimento={vencimento_exibicao} ({vencimento_raw}), nova_taxa={nova_taxa}")
+    
+    # Verificar se a taxa mudou
+    if not nova_taxa or nova_taxa == "":
+        # Se taxa foi limpa, limpar PU também
+        dados_atualizados = [dict(d) for d in data_atual]  # Deep copy
+        dados_atualizados[row_idx]["pu_termo"] = ""
+        dados_originais_atualizados = [dict(d) for d in dados_atualizados]  # Atualizar originais
+        return dados_atualizados, carteira_id, dados_originais_atualizados
+    
     try:
-        vencimentos = get_vencimentos_ntnb()
-        if not vencimentos:
-            return [], 1
-        options = [
-            {"label": formatar_data_para_exibicao(v), "value": v}
-            for v in vencimentos
-        ]
-        return options, 1
+        taxa_float = float(nova_taxa)
+    except (ValueError, TypeError):
+        print(f"[DEBUG] Erro ao converter taxa para float: {nova_taxa}")
+        return data_atual, carteira_id, dados_originais or []
+    
+    print(f"[DEBUG] Atualizando taxa: vencimento={vencimento_raw}, taxa={taxa_float}, carteira_id={carteira_id}, row_idx={row_idx}")
+    
+    # Tentar atualizar na carteira existente
+    if carteira_id:
+        ok, resultado = atualizar_taxa("ntnb", carteira_id, vencimento_raw, taxa_float)
+        if ok:
+            titulo = next((t for t in resultado.get("titulos", []) if t.get("vencimento") == vencimento_raw), None)
+            if titulo:
+                # Criar nova lista (deep copy) para garantir que o Dash detecte a mudança
+                dados_atualizados = [dict(d) for d in data_atual]
+                dados_atualizados[row_idx]["pu_termo"] = round(titulo.get("pu_termo"), 6) if titulo.get("pu_termo") else ""
+                dados_atualizados[row_idx]["taxa"] = taxa_float  # Garantir que a taxa está correta
+                # Atualizar dados originais também
+                dados_originais_atualizados = [dict(d) for d in dados_atualizados]
+                print(f"[DEBUG] Taxa atualizada com sucesso! PU: {dados_atualizados[row_idx]['pu_termo']}")
+                return dados_atualizados, carteira_id, dados_originais_atualizados
+            else:
+                print(f"[DEBUG] Titulo nao encontrado na resposta")
+        else:
+            print(f"[DEBUG] Falha ao atualizar: {resultado.get('error', 'Erro desconhecido')}")
+    
+    # Se falhou ou carteira não existe, recriar
+    print(f"[DEBUG] Recriando carteira...")
+    try:
+        ok_criar, resultado_criar = criar_carteira("ntnb", dias_liquidacao=dias if dias is not None else 1)
+        if not ok_criar:
+            print(f"[DEBUG] Falha ao recriar carteira")
+            return data_atual, None, dados_originais or []
+        
+        novo_id = resultado_criar.get("carteira_id")
+        print(f"[DEBUG] Carteira recriada: {novo_id}")
+        
+        ok_atualizar, resultado_atualizar = atualizar_taxa("ntnb", novo_id, vencimento_raw, taxa_float)
+        
+        if ok_atualizar:
+            titulo = next((t for t in resultado_atualizar.get("titulos", []) if t.get("vencimento") == vencimento_raw), None)
+            if titulo:
+                # Criar nova lista (deep copy)
+                dados_atualizados = [dict(d) for d in data_atual]
+                dados_atualizados[row_idx]["pu_termo"] = round(titulo.get("pu_termo"), 6) if titulo.get("pu_termo") else ""
+                dados_atualizados[row_idx]["taxa"] = taxa_float
+                dados_originais_atualizados = [dict(d) for d in dados_atualizados]
+                print(f"[DEBUG] Taxa atualizada na nova carteira! PU: {dados_atualizados[row_idx]['pu_termo']}")
+                return dados_atualizados, novo_id, dados_originais_atualizados
     except Exception as e:
-        print(f"❌ Erro ao carregar vencimentos NTNB: {e}")
-        return [], 1
-
-
-
+        print(f"[ERRO] Erro ao recriar carteira: {e}")
+        import traceback
+        traceback.print_exc()
+    
+    return data_atual, carteira_id, dados_originais or []

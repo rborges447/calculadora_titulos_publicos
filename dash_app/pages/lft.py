@@ -1,116 +1,55 @@
 """
-Página LFT - cálculo via API.
+Página LFT - tabela usando carteiras.
 """
 
-from datetime import date
-from dash import html, dcc, Input, Output, State, callback
+from dash import html, dcc, Input, Output, State, callback, dash_table
 import dash_bootstrap_components as dbc
 
-from dash_app.utils.api import post
-from dash_app.utils.vencimentos import get_vencimentos_lft, formatar_data_para_exibicao
-
-
-def _form():
-    return dbc.Card(
-        dbc.CardBody(
-            [
-                html.H4("Parâmetros", className="mb-3"),
-                dbc.Row(
-                    [
-                        dbc.Col(
-                            [
-                                dbc.Label("Data de vencimento"),
-                                dcc.Dropdown(
-                                    id="lft-date",
-                                    options=[],
-                                    placeholder="Selecione o vencimento...",
-                                    className="mb-3",
-                                ),
-                            ],
-                            md=6,
-                        ),
-                        dbc.Col(
-                            [
-                                dbc.Label("Dias para liquidação"),
-                                dbc.Input(
-                                    id="lft-dias",
-                                    type="number",
-                                    value=1,
-                                    min=0,
-                                    className="mb-3",
-                                ),
-                            ],
-                            md=6,
-                        ),
-                    ]
-                ),
-                dbc.Row(
-                    [
-                        dbc.Col(
-                            [
-                                dbc.Label("Quantidade"),
-                                dbc.Input(
-                                    id="lft-quantidade",
-                                    type="number",
-                                    value=0.0,
-                                    step=1,
-                                    className="mb-3",
-                                ),
-                            ],
-                            md=6,
-                        ),
-                        dbc.Col(
-                            [
-                                dbc.Label("Valor financeiro (R$)"),
-                                dbc.Input(
-                                    id="lft-financeiro",
-                                    type="number",
-                                    value=0.0,
-                                    step=1000,
-                                    className="mb-3",
-                                ),
-                            ],
-                            md=6,
-                        ),
-                    ]
-                ),
-                dbc.Button("Calcular", id="lft-btn", color="primary"),
-            ]
-        )
-    )
-
-
-def _resultado_card(res: dict):
-    return dbc.Card(
-        [
-            dbc.CardHeader("Resultado do cálculo"),
-            dbc.CardBody(
-                [
-                    dbc.Row(
-                        [
-                            dbc.Col([dbc.Label("Quantidade"), html.H5(f"{res.get('quantidade', 0):,.0f}")], md=3),
-                            dbc.Col([dbc.Label("Financeiro"), html.H5(f"R$ {res.get('financeiro', 0):,.2f}")], md=3),
-                            dbc.Col([dbc.Label("PU D0"), html.H5(f"{res.get('pu_d0', 0):.6f}")], md=3),
-                            dbc.Col([dbc.Label("VNA"), html.H5(f"R$ {res.get('vna', 0):,.6f}")], md=3),
-                        ],
-                        className="gy-2",
-                    ),
-                    html.Pre(str(res), className="result-pre mt-3"),
-                ]
-            ),
-        ],
-        className="mt-3",
-    )
+from dash_app.utils.carteiras import criar_carteira
+from dash_app.utils.vencimentos import formatar_data_para_exibicao
 
 
 def layout():
     return dbc.Container(
         [
-            dcc.Store(id="lft-trigger", data=0),
-            html.H2("LFT"),
-            html.P("Preencha os campos e envie para calcular via API /titulos/lft."),
-            _form(),
-            html.Div(id="lft-resultado", className="mt-3"),
+            dcc.Store(id="lft-carteira-id", data=None),
+            html.H2("LFT - Letra Financeira do Tesouro"),
+            html.P("Visualize os PU termo de cada vencimento."),
+            
+            dbc.Card(
+                dbc.CardBody(
+                    [
+                        html.H4("Parâmetros", className="mb-3"),
+                        dbc.Row(
+                            [
+                                dbc.Col(
+                                    [
+                                        dbc.Label("Dias para liquidação"),
+                                        dbc.Input(
+                                            id="lft-dias",
+                                            type="number",
+                                            value=1,
+                                            min=0,
+                                        ),
+                                    ],
+                                    md=4,
+                                ),
+                            ],
+                            className="mb-3",
+                        ),
+                    ]
+                ),
+                className="mb-4",
+            ),
+            
+            dbc.Card(
+                dbc.CardBody(
+                    [
+                        html.H4("Tabela de Vencimentos", className="mb-3"),
+                        html.Div(id="lft-tabela-container"),
+                    ]
+                ),
+            ),
         ],
         fluid=True,
         className="py-2",
@@ -118,49 +57,47 @@ def layout():
 
 
 @callback(
-    Output("lft-resultado", "children"),
-    Input("lft-btn", "n_clicks"),
-    State("lft-date", "value"),
-    State("lft-dias", "value"),
-    State("lft-quantidade", "value"),
-    State("lft-financeiro", "value"),
-    prevent_initial_call=True,
-)
-def calcular(n_clicks, data_venc, dias, quantidade, financeiro):
-    if not data_venc:
-        return dbc.Alert("Informe a data de vencimento", color="warning")
-    if not financeiro and not quantidade:
-        return dbc.Alert("Informe quantidade ou valor financeiro", color="warning")
-
-    payload = {"data_vencimento": data_venc, "dias_liquidacao": int(dias) if dias else 1}
-    if financeiro and financeiro > 0:
-        payload["financeiro"] = float(financeiro)
-    elif quantidade and quantidade > 0:
-        payload["quantidade"] = float(quantidade)
-
-    ok, res = post("/titulos/lft", payload)
-    if not ok:
-        return dbc.Alert(f"Erro: {res}", color="danger")
-    return _resultado_card(res)
-
-
-@callback(
-    [Output("lft-date", "options"), Output("lft-trigger", "data")],
-    Input("lft-trigger", "data"),
+    [
+        Output("lft-carteira-id", "data"),
+        Output("lft-tabela-container", "children"),
+    ],
+    [
+        Input("lft-dias", "value"),
+    ],
+    State("lft-carteira-id", "data"),
     prevent_initial_call=False,
 )
-def carregar_vencimentos(_):
-    """Carrega lista de vencimentos disponíveis para LFT"""
+def carregar_carteira(dias, carteira_id_existente):
+    """Carrega ou recria a carteira"""
     try:
-        vencimentos = get_vencimentos_lft()
-        if not vencimentos:
-            return [], 1
-        options = [
-            {"label": formatar_data_para_exibicao(v), "value": v}
-            for v in vencimentos
+        # Permitir 0 como valor válido
+        dias_valor = dias if dias is not None else 1
+        ok, resultado = criar_carteira("lft", dias_liquidacao=dias_valor)
+        if not ok:
+            return None, html.P(f"Erro ao criar carteira: {resultado.get('error', 'Erro desconhecido')}", className="text-danger")
+        
+        carteira_id = resultado.get("carteira_id")
+        dados = [
+            {
+                "vencimento": formatar_data_para_exibicao(t["vencimento"]),
+                "pu_termo": round(t.get("pu_termo"), 6) if t.get("pu_termo") else "",
+            }
+            for t in resultado["titulos"]
         ]
-        return options, 1
+        
+        tabela = dash_table.DataTable(
+            id="lft-tabela",
+            columns=[
+                {"name": "Vencimento", "id": "vencimento", "editable": False},
+                {"name": "PU Termo", "id": "pu_termo", "editable": False, "type": "numeric", "format": {"specifier": ".6f"}},
+            ],
+            data=dados,
+            editable=False,
+            style_cell={"textAlign": "left", "padding": "10px"},
+            style_header={"backgroundColor": "#0d6efd", "color": "white", "fontWeight": "bold"},
+        )
+        
+        return carteira_id, tabela
     except Exception as e:
-        print(f"❌ Erro ao carregar vencimentos LFT: {e}")
-        return [], 1
-
+        print(f"[ERRO] Erro ao carregar carteira: {e}")
+        return None, html.P(f"Erro ao carregar carteira: {e}", className="text-danger")

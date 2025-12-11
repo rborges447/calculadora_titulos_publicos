@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
-from .routers import ntnb, ltn, lft, ntnf, equivalencia, vencimentos
+from .routers import ntnb, ltn, lft, ntnf, equivalencia, vencimentos, carteiras
 from .utils import precisa_atualizar_mercado, marcar_atualizado
 from titulospub.dados.orquestrador import VariaveisMercado
 
@@ -62,6 +62,7 @@ app.include_router(ntnb.router)
 app.include_router(ntnf.router)
 app.include_router(equivalencia.router)
 app.include_router(vencimentos.router)
+app.include_router(carteiras.router)
 
 
 @app.get("/", tags=["Root"])

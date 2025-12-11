@@ -42,5 +42,3 @@ packages = ["titulospub"]
 [tool.setuptools.package-data]
 titulospub = ["**/*.py"]
 
-
-

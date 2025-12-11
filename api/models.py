@@ -484,3 +484,110 @@ class TodosVencimentosResponse(BaseModel):
         description="Vencimentos disponíveis para NTNF",
         example=["2026-01-01", "2026-04-01"]
     )
+
+
+# ==================== CARTEIRAS MODELS ====================
+
+class CarteiraCreateRequest(BaseModel):
+    """Request model para criação de carteira"""
+    data_base: Optional[str] = Field(
+        None,
+        description="Data base para cálculos (formato: YYYY-MM-DD). Se não informado, usa a data atual",
+        example="2024-12-01"
+    )
+    dias_liquidacao: Optional[int] = Field(
+        1,
+        description="Dias para liquidação (padrão: 1)",
+        ge=0,
+        example=1
+    )
+    quantidade_padrao: Optional[float] = Field(
+        None,
+        description="Quantidade padrão para cada título",
+        gt=0,
+        example=50000
+    )
+    tipo_entrada: Optional[str] = Field(
+        "taxa",
+        description="Tipo de entrada: 'taxa' ou 'premio_di' (apenas para LTN e NTNF)",
+        example="taxa"
+    )
+
+
+class CarteiraUpdateTaxaRequest(BaseModel):
+    """Request model para atualizar taxa de um título específico"""
+    vencimento: str = Field(
+        ...,
+        description="Data de vencimento (formato: YYYY-MM-DD)",
+        example="2025-01-01"
+    )
+    taxa: float = Field(
+        ...,
+        description="Nova taxa de juros (%)",
+        example=12.5
+    )
+
+
+class CarteiraUpdatePremioDIRequest(BaseModel):
+    """Request model para atualizar prêmio e DI de um título específico"""
+    vencimento: str = Field(
+        ...,
+        description="Data de vencimento (formato: YYYY-MM-DD)",
+        example="2025-01-01"
+    )
+    premio: float = Field(
+        ...,
+        description="Prêmio sobre DI",
+        example=0.5
+    )
+    di: float = Field(
+        ...,
+        description="Taxa DI de referência (%)",
+        example=13.0
+    )
+
+
+class CarteiraUpdateDiasRequest(BaseModel):
+    """Request model para atualizar dias de liquidação"""
+    dias: int = Field(
+        ...,
+        description="Novo número de dias para liquidação",
+        ge=0,
+        example=1
+    )
+
+
+class CarteiraUpdateQuantidadeRequest(BaseModel):
+    """Request model para atualizar quantidade de um título específico"""
+    vencimento: str = Field(
+        ...,
+        description="Data de vencimento (formato: YYYY-MM-DD)",
+        example="2025-01-01"
+    )
+    quantidade: float = Field(
+        ...,
+        description="Nova quantidade",
+        gt=0,
+        example=50000
+    )
+
+
+class TituloCarteiraData(BaseModel):
+    """Modelo para dados de um título na carteira"""
+    vencimento: str = Field(..., description="Data de vencimento")
+    taxa: Optional[float] = Field(None, description="Taxa de juros (%)")
+    pu_termo: Optional[float] = Field(None, description="Preço unitário a termo")
+    pu_d0: Optional[float] = Field(None, description="Preço unitário à vista")
+    quantidade: float = Field(..., description="Quantidade de títulos")
+    financeiro: Optional[float] = Field(None, description="Valor financeiro (R$)")
+    dv01: Optional[float] = Field(None, description="DV01")
+
+
+class CarteiraResponse(BaseModel):
+    """Response model para dados da carteira"""
+    carteira_id: Optional[str] = Field(None, description="ID da carteira (retornado apenas na criação)")
+    tipo: str = Field(..., description="Tipo do título (LTN, LFT, NTNB, NTNF)")
+    data_base: Optional[str] = Field(None, description="Data base")
+    dias_liquidacao: int = Field(..., description="Dias para liquidação")
+    total_titulos: int = Field(..., description="Total de títulos na carteira")
+    titulos: list[TituloCarteiraData] = Field(..., description="Lista de títulos na carteira")

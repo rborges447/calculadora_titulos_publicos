@@ -37,10 +37,10 @@ class VariaveisMercado:
                 return feriados
 
         try:
-            print("📡 Buscando feriados via scraping...")
+            print("Buscando feriados via scraping...")
             feriados = scrap_feriados()
         except Exception as e:
-            print(f"⚠️ Falha no scraping de feriados: {e}")
+            print(f"[AVISO] Falha no scraping de feriados: {e}")
             feriados = backup_feriados()
             print("Feriados pego via backup")
         self._feriados = feriados
@@ -65,7 +65,7 @@ class VariaveisMercado:
             data = pd.Timestamp.today().normalize()
 
         try:
-            print("📡 Calculando IPCA dict...")
+            print("Calculando IPCA dict...")
             ipca_fechado_df = puxar_valores_ipca_fechado()
             ipca_proj_float = scrap_proj_ipca()
             ipca_dict = dicionario_ipca(data=data,
@@ -73,7 +73,7 @@ class VariaveisMercado:
                                         ipca_proj_float=ipca_proj_float, 
                                         feriados=feriados)
         except Exception as e:
-            print(f"⚠️ Falha ao calcular IPCA: {e}")
+            print(f"[AVISO] Falha ao calcular IPCA: {e}")
             #fallback via CSV 
             ipca_fechado_df = backup_ipca_fechado()               
             ipca_proj_float =  backup_ipca_proj()
@@ -98,15 +98,15 @@ class VariaveisMercado:
                 return cdi
 
         try:
-            print("📡 Buscando CDI...")
+            print("Buscando CDI...")
             cdi = scrap_cdi()
         except Exception as e:
-            print(f"⚠️ Falha ao buscar CDI: {e}")
-            print("📁 Tentando carregar backup local...")
+            print(f"[AVISO] Falha ao buscar CDI: {e}")
+            print("Tentando carregar backup local...")
             cdi = backup_cdi()
             print("cdi pego via backup")
             if cdi is None:
-                raise RuntimeError("❌ Falha no scraping e no backup do CDI") from e
+                raise RuntimeError("[ERRO] Falha no scraping e no backup do CDI") from e
 
         self._cdi = cdi
         save_cache(cdi, "cdi.pkl")
@@ -122,19 +122,19 @@ class VariaveisMercado:
         if not force_update:
             cache = load_cache("vna_lft.pkl")
             if cache is not None:
-                print("✅ Usando cache existente de VNA_LFT completo.")
+                print("[OK] Usando cache existente de VNA_LFT completo.")
                 self._vna_lft = cache
                 return cache
 
         try:
-            print("📡 Realizando scraping VNA_LFT...")
+            print("Realizando scraping VNA_LFT...")
             vna_lft = scrap_vna_lft(data=data)
             save_cache(vna_lft, "vna_lft.pkl")
-            print("♻️ Cache salvo para VNA_LFT.")
+            print("[OK] Cache salvo para VNA_LFT.")
             self._vna_lft = vna_lft
             return vna_lft
         except Exception as e:
-            print(f"❌ Erro ao fazer scraping/parsing VNA_LFT: {e}")
+            print(f"[ERRO] Erro ao fazer scraping/parsing VNA_LFT: {e}")
             # Por enquanto, vamos re-raise a exceção para que o erro seja visível
             # TODO: Implementar backup para VNA_LFT
             raise RuntimeError(f"Falha ao obter VNA_LFT: {e}") from e
@@ -151,23 +151,23 @@ class VariaveisMercado:
         if not force_update:
             cache = load_cache("anbimas.pkl")
             if cache is not None:
-                print("✅ Usando cache existente de ANBIMAS completo.")
+                print("[OK] Usando cache existente de ANBIMAS completo.")
                 self._anbimas = cache
                 return cache
 
         try:
-            print("📡 Realizando scraping ANBIMA...")
+            print("Realizando scraping ANBIMA...")
             df_anbima = scrap_anbimas(data=data)
             anbimas_dict = anbimas(df_anbima)
         except Exception as e:
-            print(f"❌ Erro ao fazer scraping/parsing ANBIMA: {e}")
+            print(f"[ERRO] Erro ao fazer scraping/parsing ANBIMA: {e}")
             # Aqui pode colocar fallback via backup_anbimas()
             anbimas_dict = backup_anbimas()
             #self._anbimas = {}
             #return {}
 
         save_cache(anbimas_dict, "anbimas.pkl")
-        print("♻️ Cache salvo para todos os títulos ANBIMA.")
+        print("[OK] Cache salvo para todos os títulos ANBIMA.")
 
         self._anbimas = anbimas_dict
         return anbimas_dict
@@ -183,26 +183,26 @@ class VariaveisMercado:
         if not force_update:
             cache = load_cache("bmf.pkl")
             if cache is not None:
-                print("✅ Usando cache existente de BMF completo.")
+                print("[OK] Usando cache existente de BMF completo.")
                 self._bmf = cache
                 return cache
         
         try:
-            print("📡 Realizando scraping BMF...")
+            print("Realizando scraping BMF...")
             df_bmf = ajustes_bmf(data=data)
         except Exception as e:
             try:
                 bmf_dict = scrap_bmf_net()
                 df_bmf = ajustes_bmf_net(bmf_dict=bmf_dict, data=data)
-                print(f"❌ Erro ao fazer scraping/parsing BMF, buscando da net: {e}")
+                print(f"[ERRO] Erro ao fazer scraping/parsing BMF, buscando da net: {e}")
             except:
-                print(f"❌ Erro ao fazer scraping/parsing BMF, biscando do excel backup: {e}")
+                print(f"[ERRO] Erro ao fazer scraping/parsing BMF, biscando do excel backup: {e}")
                 # Aqui pode colocar fallback via backup_anbimas()
                 df_bmf = backup_bmf()
             
 
         save_cache(df_bmf, "bmf.pkl")
-        print("♻️ Cache salvo para todos os contrados de DI e DAP.")
+        print("[OK] Cache salvo para todos os contrados de DI e DAP.")
 
         self._bmf = df_bmf
         return df_bmf
@@ -213,7 +213,7 @@ class VariaveisMercado:
         Faz fallback automático em caso de erro.
         """
         if verbose:
-            print("🔄 Atualizando variáveis de mercado...")
+            print("Atualizando variáveis de mercado...")
 
         self.get_feriados(force_update=True)
         self.get_ipca_dict(force_update=True)
@@ -225,7 +225,7 @@ class VariaveisMercado:
         # self.get_curvas(force_update=True)
 
         if verbose:
-            print("✅ Atualização concluída.")
+            print("[OK] Atualização concluída.")
 
     def limpar_cache(self):
         clear_cache("feriados.pkl")
@@ -248,39 +248,39 @@ class VariaveisMercado:
         return pd.read_csv(caminho)
     '''
 if __name__ == "__main__":
-    print("🔄 Testando orquestrador de variáveis de mercado...")
+    print("Testando orquestrador de variáveis de mercado...")
     
     try:
         vm = VariaveisMercado()
         
-        print("📊 Testando get_feriados()...")
+        print("Testando get_feriados()...")
         feriados = vm.get_feriados()
-        print(f"✅ Feriados: {len(feriados)} registros")
+        print(f"[OK] Feriados: {len(feriados)} registros")
         
-        print("📊 Testando get_ipca_dict()...")
+        print("Testando get_ipca_dict()...")
         ipca_dict = vm.get_ipca_dict()
-        print(f"✅ IPCA dict: {type(ipca_dict)}")
+        print(f"[OK] IPCA dict: {type(ipca_dict)}")
         
-        print("📊 Testando get_cdi()...")
+        print("Testando get_cdi()...")
         cdi = vm.get_cdi()
-        print(f"✅ CDI: {cdi}")
+        print(f"[OK] CDI: {cdi}")
         
-        print("📊 Testando get_anbimas()...")
+        print("Testando get_anbimas()...")
         anbimas = vm.get_anbimas()
-        print(f"✅ ANBIMAS: {len(anbimas)} tipos de títulos")
+        print(f"[OK] ANBIMAS: {len(anbimas)} tipos de títulos")
         for titulo, df in anbimas.items():
             print(f"  - {titulo}: {len(df)} registros")
         
-        print("📊 Testando get_bmf()...")
+        print("Testando get_bmf()...")
         bmf = vm.get_bmf()
-        print(f"✅ BMF: {len(bmf)} tipos de contratos")
+        print(f"[OK] BMF: {len(bmf)} tipos de contratos")
         for tipo, df in bmf.items():
             print(f"  - {tipo}: {len(df)} registros")
         
-        print("✅ Orquestrador funcionando corretamente!")
+        print("[OK] Orquestrador funcionando corretamente!")
         
     except Exception as e:
-        print(f"❌ Erro durante teste: {e}")
+        print(f"[ERRO] Erro durante teste: {e}")
         import traceback
         traceback.print_exc()
         # Futuro:

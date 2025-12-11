@@ -1,3 +1,0 @@
-"""
-Componentes reutilizáveis da aplicação
-"""
