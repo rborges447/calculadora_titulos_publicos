@@ -12,6 +12,7 @@ from dash_app.utils.vencimentos import (
     get_codigos_di,
     formatar_data_para_exibicao,
 )
+from dash_app.utils.formatacao import formatar_numero_brasileiro, parse_numero_brasileiro
 
 
 def layout():
@@ -117,19 +118,19 @@ def layout():
 
 def _resultado_card(res: dict):
     """Exibe resultado do hedge DI em formato de cards."""
-    def _fmt(valor, fmt, default="0"):
+    def _fmt_brasileiro(valor, casas_decimais=0, default="0"):
         try:
             if valor is None:
-                valor = default
-            return format(valor, fmt) if isinstance(valor, (int, float)) else str(valor)
+                return default
+            return formatar_numero_brasileiro(float(valor), casas_decimais) if isinstance(valor, (int, float)) else str(valor)
         except Exception:
             return str(default)
 
     metrics = [
-        ("Quantidade NTNB", _fmt(res.get("quantidade", 0), ",.0f")),
-        ("DV01 NTNB", _fmt(res.get("dv01_ntnb", 0), ",.2f")),
-        ("Hedge DI", f"{_fmt(res.get('hedge_di', 0), ',.0f')} contratos"),
-        ("Ajuste DI", f"{_fmt(res.get('ajuste_di', 0), '.4f')}%"),
+        ("Quantidade NTNB", _fmt_brasileiro(res.get("quantidade", 0), 0)),
+        ("DV01 NTNB", _fmt_brasileiro(res.get("dv01_ntnb", 0), 2)),
+        ("Hedge DI", f"{_fmt_brasileiro(res.get('hedge_di', 0), 0)} contratos"),
+        ("Ajuste DI", f"{_fmt_brasileiro(res.get('ajuste_di', 0), 4)}%"),
     ]
 
     def _metric_card(label, value):
@@ -184,11 +185,20 @@ def calcular_hedge(n_clicks, data_venc, codigo_di, taxa, dias, quantidade, finan
         "dias_liquidacao": int(dias) if dias else 1,
     }
     if taxa:
-        payload["taxa"] = float(taxa)
+        # Converter do formato brasileiro se necessário
+        taxa_float = parse_numero_brasileiro(str(taxa)) if isinstance(taxa, str) else float(taxa)
+        if taxa_float is not None:
+            payload["taxa"] = taxa_float
     if financeiro and financeiro > 0:
-        payload["financeiro"] = float(financeiro)
+        # Converter do formato brasileiro se necessário
+        financeiro_float = parse_numero_brasileiro(str(financeiro)) if isinstance(financeiro, str) else float(financeiro)
+        if financeiro_float is not None:
+            payload["financeiro"] = financeiro_float
     elif quantidade and quantidade > 0:
-        payload["quantidade"] = float(quantidade)
+        # Converter do formato brasileiro se necessário
+        quantidade_float = parse_numero_brasileiro(str(quantidade)) if isinstance(quantidade, str) else float(quantidade)
+        if quantidade_float is not None:
+            payload["quantidade"] = quantidade_float
 
     ok, res = post("/titulos/ntnb/hedge-di", payload)
     if not ok:

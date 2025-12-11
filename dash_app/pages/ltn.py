@@ -7,6 +7,7 @@ import dash_bootstrap_components as dbc
 
 from dash_app.utils.carteiras import criar_carteira, atualizar_taxa, atualizar_premio_di, atualizar_dias_liquidacao
 from dash_app.utils.vencimentos import formatar_data_para_exibicao
+from dash_app.utils.formatacao import formatar_taxa_brasileira, formatar_pu_brasileiro, parse_numero_brasileiro
 
 
 def layout():
@@ -128,8 +129,8 @@ def carregar_carteira(dias, carteira_id_existente):
             {
                 "vencimento": formatar_data_para_exibicao(t["vencimento"]),
                 "vencimento_raw": t["vencimento"],
-                "taxa": t.get("taxa") or "",
-                "pu_termo": round(t.get("pu_termo"), 6) if t.get("pu_termo") else "",
+                "taxa": formatar_taxa_brasileira(t.get("taxa")) if t.get("taxa") else "",
+                "pu_termo": formatar_pu_brasileiro(t.get("pu_termo")) if t.get("pu_termo") else "",
             }
             for t in resultado["titulos"]
         ]
@@ -138,8 +139,8 @@ def carregar_carteira(dias, carteira_id_existente):
             id="ltn-tabela",
             columns=[
                 {"name": "Vencimento", "id": "vencimento", "editable": False},
-                {"name": "Taxa (%)", "id": "taxa", "editable": True, "type": "numeric", "format": {"specifier": ".4f"}},
-                {"name": "PU Termo", "id": "pu_termo", "editable": False, "type": "numeric", "format": {"specifier": ".6f"}},
+                {"name": "Taxa (%)", "id": "taxa", "editable": True, "type": "text"},
+                {"name": "PU Termo", "id": "pu_termo", "editable": False, "type": "text"},
             ],
             data=dados,
             editable=True,
@@ -275,9 +276,9 @@ def atualizar_taxa_callback(timestamp, data_atual, active_cell, carteira_id, dad
         dados_originais_atualizados = [dict(d) for d in dados_atualizados]
         return dados_atualizados, carteira_id, dados_originais_atualizados
     
-    try:
-        taxa_float = float(nova_taxa)
-    except (ValueError, TypeError):
+    # Converter do formato brasileiro para float
+    taxa_float = parse_numero_brasileiro(nova_taxa)
+    if taxa_float is None:
         return data_atual, carteira_id, dados_originais or []
     
     # Tentar atualizar na carteira existente
@@ -293,8 +294,8 @@ def atualizar_taxa_callback(timestamp, data_atual, active_cell, carteira_id, dad
             titulo = next((t for t in resultado.get("titulos", []) if t.get("vencimento") == vencimento_raw), None)
             if titulo:
                 dados_atualizados = [dict(d) for d in data_atual]
-                dados_atualizados[row_idx]["pu_termo"] = round(titulo.get("pu_termo"), 6) if titulo.get("pu_termo") else ""
-                dados_atualizados[row_idx]["taxa"] = taxa_float
+                dados_atualizados[row_idx]["pu_termo"] = formatar_pu_brasileiro(titulo.get("pu_termo")) if titulo.get("pu_termo") else ""
+                dados_atualizados[row_idx]["taxa"] = formatar_taxa_brasileira(taxa_float)
                 dados_originais_atualizados = [dict(d) for d in dados_atualizados]
                 return dados_atualizados, carteira_id, dados_originais_atualizados
     
@@ -317,8 +318,8 @@ def atualizar_taxa_callback(timestamp, data_atual, active_cell, carteira_id, dad
             titulo = next((t for t in resultado_atualizar.get("titulos", []) if t.get("vencimento") == vencimento_raw), None)
             if titulo:
                 dados_atualizados = [dict(d) for d in data_atual]
-                dados_atualizados[row_idx]["pu_termo"] = round(titulo.get("pu_termo"), 6) if titulo.get("pu_termo") else ""
-                dados_atualizados[row_idx]["taxa"] = taxa_float
+                dados_atualizados[row_idx]["pu_termo"] = formatar_pu_brasileiro(titulo.get("pu_termo")) if titulo.get("pu_termo") else ""
+                dados_atualizados[row_idx]["taxa"] = formatar_taxa_brasileira(taxa_float)
                 dados_originais_atualizados = [dict(d) for d in dados_atualizados]
                 return dados_atualizados, novo_id, dados_originais_atualizados
     except Exception as e:

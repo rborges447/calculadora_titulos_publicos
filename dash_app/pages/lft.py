@@ -7,6 +7,7 @@ import dash_bootstrap_components as dbc
 
 from dash_app.utils.carteiras import criar_carteira
 from dash_app.utils.vencimentos import formatar_data_para_exibicao
+from dash_app.utils.formatacao import formatar_pu_brasileiro
 
 
 def layout():
@@ -80,7 +81,7 @@ def carregar_carteira(dias, carteira_id_existente):
         dados = [
             {
                 "vencimento": formatar_data_para_exibicao(t["vencimento"]),
-                "pu_termo": round(t.get("pu_termo"), 6) if t.get("pu_termo") else "",
+                "pu_termo": formatar_pu_brasileiro(t.get("pu_termo")) if t.get("pu_termo") else "",
             }
             for t in resultado["titulos"]
         ]
@@ -89,7 +90,7 @@ def carregar_carteira(dias, carteira_id_existente):
             id="lft-tabela",
             columns=[
                 {"name": "Vencimento", "id": "vencimento", "editable": False},
-                {"name": "PU Termo", "id": "pu_termo", "editable": False, "type": "numeric", "format": {"specifier": ".6f"}},
+                {"name": "PU Termo", "id": "pu_termo", "editable": False, "type": "text"},
             ],
             data=dados,
             editable=False,
