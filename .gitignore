@@ -1,0 +1,45 @@
+# Arquivos de controle da API
+api/.ultima_atualizacao.json
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# Ambiente virtual
+venv/
+env/
+ENV/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Cache e dados temporários
+*.pkl
+*.cache
+.pytest_cache/
+
+# Logs
+*.log
+
+# Sistema operacional
+.DS_Store
+Thumbs.db
+
+
+
+venv/
+__pycache__/
+.pytest_cache/
+.env
+*.pyc
+*.pyo
+*.pyd

@@ -1,0 +1,6 @@
+"""
+Utilitários da aplicação
+"""
+
+
+
