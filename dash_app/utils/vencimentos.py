@@ -1,5 +1,9 @@
 """
 Funções utilitárias para buscar vencimentos e códigos disponíveis via API.
+
+IMPORTANTE: Todas as funções neste módulo fazem requisições HTTP para a API FastAPI.
+Nunca importar ou chamar diretamente as funções de titulospub.dados.vencimentos.
+Isso garante escalabilidade e permite múltiplos usuários simultâneos.
 """
 import requests
 from typing import List, Optional
@@ -35,11 +39,16 @@ def get_vencimentos_lft() -> List[str]:
         List[str]: Lista de datas no formato YYYY-MM-DD
     """
     try:
-        response = requests.get(f"{API_URL}/vencimentos/lft", timeout=10)
+        response = requests.get(f"{API_URL}/vencimentos/lft", timeout=30)
         response.raise_for_status()
-        return response.json()
+        result = response.json()
+        print(f"[API] Vencimentos LFT recebidos: {len(result)} itens")
+        return result
+    except requests.exceptions.ConnectionError:
+        print(f"[ERRO] Nao foi possivel conectar a API em {API_URL}")
+        return []
     except Exception as e:
-        print(f"Erro ao buscar vencimentos LFT: {e}")
+        print(f"[ERRO] Erro ao buscar vencimentos LFT: {e}")
         return []
 
 
@@ -51,11 +60,16 @@ def get_vencimentos_ntnb() -> List[str]:
         List[str]: Lista de datas no formato YYYY-MM-DD
     """
     try:
-        response = requests.get(f"{API_URL}/vencimentos/ntnb", timeout=10)
+        response = requests.get(f"{API_URL}/vencimentos/ntnb", timeout=30)
         response.raise_for_status()
-        return response.json()
+        result = response.json()
+        print(f"[API] Vencimentos NTNB recebidos: {len(result)} itens")
+        return result
+    except requests.exceptions.ConnectionError:
+        print(f"[ERRO] Nao foi possivel conectar a API em {API_URL}")
+        return []
     except Exception as e:
-        print(f"Erro ao buscar vencimentos NTNB: {e}")
+        print(f"[ERRO] Erro ao buscar vencimentos NTNB: {e}")
         return []
 
 
@@ -67,11 +81,16 @@ def get_vencimentos_ntnf() -> List[str]:
         List[str]: Lista de datas no formato YYYY-MM-DD
     """
     try:
-        response = requests.get(f"{API_URL}/vencimentos/ntnf", timeout=10)
+        response = requests.get(f"{API_URL}/vencimentos/ntnf", timeout=30)
         response.raise_for_status()
-        return response.json()
+        result = response.json()
+        print(f"[API] Vencimentos NTNF recebidos: {len(result)} itens")
+        return result
+    except requests.exceptions.ConnectionError:
+        print(f"[ERRO] Nao foi possivel conectar a API em {API_URL}")
+        return []
     except Exception as e:
-        print(f"Erro ao buscar vencimentos NTNF: {e}")
+        print(f"[ERRO] Erro ao buscar vencimentos NTNF: {e}")
         return []
 
 
@@ -83,11 +102,16 @@ def get_codigos_di() -> List[str]:
         List[str]: Lista de códigos DI (ex: DI1F32, DI1F33, etc)
     """
     try:
-        response = requests.get(f"{API_URL}/vencimentos/di", timeout=10)
+        response = requests.get(f"{API_URL}/vencimentos/di", timeout=30)
         response.raise_for_status()
-        return response.json()
+        result = response.json()
+        print(f"[API] Codigos DI recebidos: {len(result)} itens")
+        return result
+    except requests.exceptions.ConnectionError:
+        print(f"[ERRO] Nao foi possivel conectar a API em {API_URL}")
+        return []
     except Exception as e:
-        print(f"Erro ao buscar códigos DI: {e}")
+        print(f"[ERRO] Erro ao buscar codigos DI: {e}")
         return []
 
 

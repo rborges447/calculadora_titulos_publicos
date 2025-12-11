@@ -430,3 +430,57 @@ class ErrorResponse(BaseModel):
     """Modelo para respostas de erro"""
     error: str = Field(..., description="Mensagem de erro")
     detail: Optional[str] = Field(None, description="Detalhes do erro")
+
+
+# ==================== VENCIMENTOS MODELS ====================
+
+class VencimentosResponse(BaseModel):
+    """Response model para lista de vencimentos"""
+    vencimentos: list[str] = Field(
+        ...,
+        description="Lista de datas de vencimento disponíveis (formato: YYYY-MM-DD)",
+        example=["2026-01-01", "2026-04-01", "2026-07-01"]
+    )
+    total: int = Field(
+        ...,
+        description="Total de vencimentos disponíveis",
+        example=13
+    )
+
+
+class CodigosDIResponse(BaseModel):
+    """Response model para lista de códigos DI"""
+    codigos: list[str] = Field(
+        ...,
+        description="Lista de códigos DI disponíveis",
+        example=["DI1F32", "DI1F33", "DI1F34"]
+    )
+    total: int = Field(
+        ...,
+        description="Total de códigos DI disponíveis",
+        example=15
+    )
+
+
+class TodosVencimentosResponse(BaseModel):
+    """Response model para todos os vencimentos por título"""
+    ltn: list[str] = Field(
+        ...,
+        description="Vencimentos disponíveis para LTN",
+        example=["2026-01-01", "2026-04-01"]
+    )
+    lft: list[str] = Field(
+        ...,
+        description="Vencimentos disponíveis para LFT",
+        example=["2026-01-01", "2026-04-01"]
+    )
+    ntnb: list[str] = Field(
+        ...,
+        description="Vencimentos disponíveis para NTNB",
+        example=["2026-01-01", "2026-04-01"]
+    )
+    ntnf: list[str] = Field(
+        ...,
+        description="Vencimentos disponíveis para NTNF",
+        example=["2026-01-01", "2026-04-01"]
+    )
