@@ -7,6 +7,7 @@ from dash import html, dcc, Input, Output, State, callback
 import dash_bootstrap_components as dbc
 
 from dash_app.utils.api import post
+from dash_app.utils.vencimentos import get_vencimentos_ntnb, formatar_data_para_exibicao
 
 
 def _form_calculo():
@@ -19,10 +20,10 @@ def _form_calculo():
                         dbc.Col(
                             [
                                 dbc.Label("Data de vencimento"),
-                                dcc.DatePickerSingle(
+                                dcc.Dropdown(
                                     id="ntnb-date",
-                                    date=date.today(),
-                                    display_format="DD/MM/YYYY",
+                                    options=[],
+                                    placeholder="Selecione o vencimento...",
                                     className="mb-3",
                                 ),
                             ],
@@ -154,6 +155,7 @@ def _resultado_card(res: dict, titulo: str):
 def layout():
     return dbc.Container(
         [
+            dcc.Store(id="ntnb-trigger", data=0),
             html.H2("NTNB"),
             html.P("Calcule NTNB consumindo a API."),
             _form_calculo(),
@@ -190,7 +192,7 @@ def layout():
 @callback(
     Output("ntnb-resultado", "children"),
     Input("ntnb-btn", "n_clicks"),
-    State("ntnb-date", "date"),
+    State("ntnb-date", "value"),
     State("ntnb-dias", "value"),
     State("ntnb-taxa", "value"),
     State("ntnb-quantidade", "value"),
@@ -216,6 +218,27 @@ def calcular_ntnb(n_clicks, data_venc, dias, taxa, quantidade, financeiro):
     if not ok:
         return dbc.Alert(f"Erro: {res}", color="danger")
     return _resultado_card(res, "Resultado do cálculo")
+
+
+@callback(
+    [Output("ntnb-date", "options"), Output("ntnb-trigger", "data")],
+    Input("ntnb-trigger", "data"),
+    prevent_initial_call=False,
+)
+def carregar_vencimentos_ntnb(_):
+    """Carrega lista de vencimentos disponíveis para NTNB"""
+    try:
+        vencimentos = get_vencimentos_ntnb()
+        if not vencimentos:
+            return [], 1
+        options = [
+            {"label": formatar_data_para_exibicao(v), "value": v}
+            for v in vencimentos
+        ]
+        return options, 1
+    except Exception as e:
+        print(f"❌ Erro ao carregar vencimentos NTNB: {e}")
+        return [], 1
 
 
 

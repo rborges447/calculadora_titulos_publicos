@@ -7,6 +7,7 @@ from dash import html, dcc, Input, Output, State, callback
 import dash_bootstrap_components as dbc
 
 from dash_app.utils.api import post
+from dash_app.utils.vencimentos import get_vencimentos_ntnf, formatar_data_para_exibicao
 
 
 def _form():
@@ -19,10 +20,10 @@ def _form():
                         dbc.Col(
                             [
                                 dbc.Label("Data de vencimento"),
-                                dcc.DatePickerSingle(
+                                dcc.Dropdown(
                                     id="ntnf-date",
-                                    date=date.today(),
-                                    display_format="DD/MM/YYYY",
+                                    options=[],
+                                    placeholder="Selecione o vencimento...",
                                     className="mb-3",
                                 ),
                             ],
@@ -164,6 +165,7 @@ def _resultado_card(res: dict):
 def layout():
     return dbc.Container(
         [
+            dcc.Store(id="ntnf-trigger", data=0),
             html.H2("NTNF"),
             html.P("Preencha os campos e envie para calcular via API /titulos/ntnf."),
             _form(),
@@ -177,7 +179,7 @@ def layout():
 @callback(
     Output("ntnf-resultado", "children"),
     Input("ntnf-btn", "n_clicks"),
-    State("ntnf-date", "date"),
+    State("ntnf-date", "value"),
     State("ntnf-dias", "value"),
     State("ntnf-tipo", "value"),
     State("ntnf-taxa", "value"),
@@ -225,4 +227,25 @@ def alternar_campos(tipo):
     if tipo == "taxa":
         return {"display": "block"}, {"display": "none"}
     return {"display": "none"}, {"display": "block"}
+
+
+@callback(
+    [Output("ntnf-date", "options"), Output("ntnf-trigger", "data")],
+    Input("ntnf-trigger", "data"),
+    prevent_initial_call=False,
+)
+def carregar_vencimentos_ntnf(_):
+    """Carrega lista de vencimentos disponíveis para NTNF"""
+    try:
+        vencimentos = get_vencimentos_ntnf()
+        if not vencimentos:
+            return [], 1
+        options = [
+            {"label": formatar_data_para_exibicao(v), "value": v}
+            for v in vencimentos
+        ]
+        return options, 1
+    except Exception as e:
+        print(f"❌ Erro ao carregar vencimentos NTNF: {e}")
+        return [], 1
 

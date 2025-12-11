@@ -7,6 +7,7 @@ from dash import html, dcc, Input, Output, State, callback
 import dash_bootstrap_components as dbc
 
 from dash_app.utils.api import post
+from dash_app.utils.vencimentos import get_vencimentos_ltn, formatar_data_para_exibicao
 
 
 def _form():
@@ -19,10 +20,10 @@ def _form():
                         dbc.Col(
                             [
                                 dbc.Label("Data de vencimento"),
-                                dcc.DatePickerSingle(
+                                dcc.Dropdown(
                                     id="ltn-date",
-                                    date=date.today(),
-                                    display_format="DD/MM/YYYY",
+                                    options=[],
+                                    placeholder="Selecione o vencimento...",
                                     className="mb-3",
                                 ),
                             ],
@@ -177,6 +178,7 @@ def _resultado_card(res: dict):
 def layout():
     return dbc.Container(
         [
+            dcc.Store(id="ltn-trigger", data=0),  # Componente para trigger do callback
             html.H2("LTN"),
             html.P("Preencha os campos e envie para calcular via API /titulos/ltn."),
             _form(),
@@ -190,7 +192,7 @@ def layout():
 @callback(
     Output("ltn-resultado", "children"),
     Input("ltn-btn", "n_clicks"),
-    State("ltn-date", "date"),
+    State("ltn-date", "value"),
     State("ltn-dias", "value"),
     State("ltn-tipo", "value"),
     State("ltn-taxa", "value"),
@@ -237,4 +239,30 @@ def alternar_campos(tipo):
     if tipo == "taxa":
         return {"display": "block"}, {"display": "none"}
     return {"display": "none"}, {"display": "block"}
+
+
+@callback(
+    [Output("ltn-date", "options"), Output("ltn-trigger", "data")],
+    Input("ltn-trigger", "data"),
+    prevent_initial_call=False,
+)
+def carregar_vencimentos(_):
+    """Carrega lista de vencimentos disponíveis para LTN"""
+    try:
+        print("[CALLBACK] Carregando vencimentos LTN...")
+        vencimentos = get_vencimentos_ltn()
+        if not vencimentos:
+            print("[WARN] Nenhum vencimento encontrado para LTN")
+            return [], 1
+        options = [
+            {"label": formatar_data_para_exibicao(v), "value": v}
+            for v in vencimentos
+        ]
+        print(f"[OK] Carregados {len(options)} vencimentos LTN no dropdown")
+        return options, 1
+    except Exception as e:
+        print(f"[ERRO] Erro ao carregar vencimentos LTN: {e}")
+        import traceback
+        traceback.print_exc()
+        return [], 1
 

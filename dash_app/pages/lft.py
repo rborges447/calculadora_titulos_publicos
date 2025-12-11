@@ -7,6 +7,7 @@ from dash import html, dcc, Input, Output, State, callback
 import dash_bootstrap_components as dbc
 
 from dash_app.utils.api import post
+from dash_app.utils.vencimentos import get_vencimentos_lft, formatar_data_para_exibicao
 
 
 def _form():
@@ -19,10 +20,10 @@ def _form():
                         dbc.Col(
                             [
                                 dbc.Label("Data de vencimento"),
-                                dcc.DatePickerSingle(
+                                dcc.Dropdown(
                                     id="lft-date",
-                                    date=date.today(),
-                                    display_format="DD/MM/YYYY",
+                                    options=[],
+                                    placeholder="Selecione o vencimento...",
                                     className="mb-3",
                                 ),
                             ],
@@ -105,6 +106,7 @@ def _resultado_card(res: dict):
 def layout():
     return dbc.Container(
         [
+            dcc.Store(id="lft-trigger", data=0),
             html.H2("LFT"),
             html.P("Preencha os campos e envie para calcular via API /titulos/lft."),
             _form(),
@@ -118,7 +120,7 @@ def layout():
 @callback(
     Output("lft-resultado", "children"),
     Input("lft-btn", "n_clicks"),
-    State("lft-date", "date"),
+    State("lft-date", "value"),
     State("lft-dias", "value"),
     State("lft-quantidade", "value"),
     State("lft-financeiro", "value"),
@@ -140,4 +142,25 @@ def calcular(n_clicks, data_venc, dias, quantidade, financeiro):
     if not ok:
         return dbc.Alert(f"Erro: {res}", color="danger")
     return _resultado_card(res)
+
+
+@callback(
+    [Output("lft-date", "options"), Output("lft-trigger", "data")],
+    Input("lft-trigger", "data"),
+    prevent_initial_call=False,
+)
+def carregar_vencimentos(_):
+    """Carrega lista de vencimentos disponíveis para LFT"""
+    try:
+        vencimentos = get_vencimentos_lft()
+        if not vencimentos:
+            return [], 1
+        options = [
+            {"label": formatar_data_para_exibicao(v), "value": v}
+            for v in vencimentos
+        ]
+        return options, 1
+    except Exception as e:
+        print(f"❌ Erro ao carregar vencimentos LFT: {e}")
+        return [], 1
 
