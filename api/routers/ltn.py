@@ -1,12 +1,13 @@
 """
 Endpoints para título LTN (Letra do Tesouro Nacional)
 """
-from fastapi import APIRouter, HTTPException
 from datetime import datetime
-import pandas as pd
 
-from titulospub import LTN
+import pandas as pd
+from fastapi import APIRouter, HTTPException
+
 from api.models import LTNRequest, LTNResponse
+from titulospub import LTN
 
 router = APIRouter(prefix="/titulos/ltn", tags=["LTN"])
 
@@ -85,6 +86,9 @@ def criar_ltn(request: LTNRequest):
         )
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+
 
 
 

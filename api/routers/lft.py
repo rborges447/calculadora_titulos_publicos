@@ -1,12 +1,13 @@
 """
 Endpoints para título LFT (Letra Financeira do Tesouro)
 """
-from fastapi import APIRouter, HTTPException
 from datetime import datetime
-import pandas as pd
 
-from titulospub import LFT
+import pandas as pd
+from fastapi import APIRouter, HTTPException
+
 from api.models import LFTRequest, LFTResponse
+from titulospub import LFT
 
 router = APIRouter(prefix="/titulos/lft", tags=["LFT"])
 
@@ -72,6 +73,9 @@ def criar_lft(request: LFTRequest):
         )
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+
 
 
 

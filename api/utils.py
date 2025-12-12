@@ -1,9 +1,9 @@
 """
 Utilitários para a API
 """
-import os
 import json
-from datetime import datetime, date
+import os
+from datetime import date, datetime
 from pathlib import Path
 
 # Caminho para arquivo de controle de atualização
@@ -77,6 +77,9 @@ def get_ultima_atualizacao() -> str:
             return dados.get('data', 'Nunca')
     except Exception:
         return "Nunca"
+
+
+
 
 
 

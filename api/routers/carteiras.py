@@ -3,32 +3,41 @@ Router para gerenciamento de carteiras de títulos públicos.
 
 As carteiras permitem gerenciar múltiplos vencimentos de um título,
 permitindo ajustar parâmetros individuais sem recalcular todos os títulos.
+
+NOTA: Esta implementação usa estado em memória que não funciona com múltiplos workers.
+Para produção com múltiplos workers, considere usar banco de dados ou cache compartilhado (Redis).
 """
+import base64
+import json
+import threading
+import uuid
+from typing import Dict, Optional
 
 from fastapi import APIRouter, HTTPException
-from typing import Dict
-import uuid
 
-from titulospub.core.carteiras import (
-    CarteiraLTN,
-    CarteiraLFT,
-    CarteiraNTNB,
-    CarteiraNTNF,
-)
 from api.models import (
     CarteiraCreateRequest,
-    CarteiraUpdateTaxaRequest,
-    CarteiraUpdatePremioDIRequest,
-    CarteiraUpdateDiasRequest,
-    CarteiraUpdateQuantidadeRequest,
     CarteiraResponse,
+    CarteiraUpdateDiasRequest,
+    CarteiraUpdatePremioDIRequest,
+    CarteiraUpdateQuantidadeRequest,
+    CarteiraUpdateTaxaRequest,
     TituloCarteiraData,
+)
+from titulospub.core.carteiras import (
+    CarteiraLFT,
+    CarteiraLTN,
+    CarteiraNTNB,
+    CarteiraNTNF,
 )
 
 router = APIRouter(prefix="/carteiras", tags=["Carteiras"])
 
-# Armazena carteiras em memória (em produção, usar banco de dados ou cache)
+# Armazena carteiras em memória com lock para thread-safety
+# LIMITAÇÃO: Não funciona com múltiplos workers (cada worker tem sua própria memória)
+# SOLUÇÃO FUTURA: Migrar para banco de dados ou cache compartilhado (Redis)
 _carteiras: Dict[str, Dict] = {}
+_carteiras_lock = threading.Lock()
 
 
 def _criar_id_carteira(tipo: str) -> str:
@@ -52,10 +61,11 @@ def criar_carteira_ltn(request: CarteiraCreateRequest):
         )
         
         carteira_id = _criar_id_carteira("ltn")
-        _carteiras[carteira_id] = {
-            "tipo": "ltn",
-            "carteira": carteira,
-        }
+        with _carteiras_lock:
+            _carteiras[carteira_id] = {
+                "tipo": "ltn",
+                "carteira": carteira,
+            }
         
         dados_tabela = carteira.obter_dados_tabela()
         titulos = [TituloCarteiraData(**dado) for dado in dados_tabela]
@@ -85,10 +95,11 @@ def criar_carteira_lft(request: CarteiraCreateRequest):
         )
         
         carteira_id = _criar_id_carteira("lft")
-        _carteiras[carteira_id] = {
-            "tipo": "lft",
-            "carteira": carteira,
-        }
+        with _carteiras_lock:
+            _carteiras[carteira_id] = {
+                "tipo": "lft",
+                "carteira": carteira,
+            }
         
         dados_tabela = carteira.obter_dados_tabela()
         titulos = [TituloCarteiraData(**dado) for dado in dados_tabela]
@@ -118,10 +129,11 @@ def criar_carteira_ntnb(request: CarteiraCreateRequest):
         )
         
         carteira_id = _criar_id_carteira("ntnb")
-        _carteiras[carteira_id] = {
-            "tipo": "ntnb",
-            "carteira": carteira,
-        }
+        with _carteiras_lock:
+            _carteiras[carteira_id] = {
+                "tipo": "ntnb",
+                "carteira": carteira,
+            }
         
         dados_tabela = carteira.obter_dados_tabela()
         titulos = [TituloCarteiraData(**dado) for dado in dados_tabela]
@@ -152,10 +164,11 @@ def criar_carteira_ntnf(request: CarteiraCreateRequest):
         )
         
         carteira_id = _criar_id_carteira("ntnf")
-        _carteiras[carteira_id] = {
-            "tipo": "ntnf",
-            "carteira": carteira,
-        }
+        with _carteiras_lock:
+            _carteiras[carteira_id] = {
+                "tipo": "ntnf",
+                "carteira": carteira,
+            }
         
         dados_tabela = carteira.obter_dados_tabela()
         titulos = [TituloCarteiraData(**dado) for dado in dados_tabela]
@@ -179,15 +192,17 @@ def atualizar_taxa_carteira(carteira_id: str, request: CarteiraUpdateTaxaRequest
     """
     Atualiza a taxa de um título específico na carteira.
     """
-    if carteira_id not in _carteiras:
-        raise HTTPException(status_code=404, detail="Carteira não encontrada")
-    
-    tipo_carteira = _carteiras[carteira_id]["tipo"]
-    if tipo_carteira not in ["ltn", "ntnb", "ntnf"]:
-        raise HTTPException(status_code=400, detail=f"Carteira do tipo {tipo_carteira.upper()} não suporta atualização de taxa")
+    with _carteiras_lock:
+        if carteira_id not in _carteiras:
+            raise HTTPException(status_code=404, detail="Carteira não encontrada")
+        
+        tipo_carteira = _carteiras[carteira_id]["tipo"]
+        if tipo_carteira not in ["ltn", "ntnb", "ntnf"]:
+            raise HTTPException(status_code=400, detail=f"Carteira do tipo {tipo_carteira.upper()} não suporta atualização de taxa")
+        
+        carteira = _carteiras[carteira_id]["carteira"]
     
     try:
-        carteira = _carteiras[carteira_id]["carteira"]
         carteira.atualizar_taxa(request.vencimento, request.taxa)
         
         dados_tabela = carteira.obter_dados_tabela()
@@ -212,15 +227,17 @@ def atualizar_premio_di_carteira(carteira_id: str, request: CarteiraUpdatePremio
     """
     Atualiza prêmio e DI de um título específico na carteira.
     """
-    if carteira_id not in _carteiras:
-        raise HTTPException(status_code=404, detail="Carteira não encontrada")
-    
-    tipo_carteira = _carteiras[carteira_id]["tipo"]
-    if tipo_carteira not in ["ltn", "ntnf"]:
-        raise HTTPException(status_code=400, detail=f"Carteira do tipo {tipo_carteira.upper()} não suporta prêmio+DI")
+    with _carteiras_lock:
+        if carteira_id not in _carteiras:
+            raise HTTPException(status_code=404, detail="Carteira não encontrada")
+        
+        tipo_carteira = _carteiras[carteira_id]["tipo"]
+        if tipo_carteira not in ["ltn", "ntnf"]:
+            raise HTTPException(status_code=400, detail=f"Carteira do tipo {tipo_carteira.upper()} não suporta prêmio+DI")
+        
+        carteira = _carteiras[carteira_id]["carteira"]
     
     try:
-        carteira = _carteiras[carteira_id]["carteira"]
         carteira.atualizar_premio_di(request.vencimento, request.premio, request.di)
         
         dados_tabela = carteira.obter_dados_tabela()
@@ -245,12 +262,14 @@ def atualizar_dias_liquidacao_carteira(carteira_id: str, request: CarteiraUpdate
     """
     Atualiza dias de liquidação para todos os títulos da carteira.
     """
-    if carteira_id not in _carteiras:
-        raise HTTPException(status_code=404, detail="Carteira não encontrada")
-    
-    try:
+    with _carteiras_lock:
+        if carteira_id not in _carteiras:
+            raise HTTPException(status_code=404, detail="Carteira não encontrada")
+        
         carteira = _carteiras[carteira_id]["carteira"]
         tipo_carteira = _carteiras[carteira_id]["tipo"]
+    
+    try:
         carteira.atualizar_dias_liquidacao(request.dias)
         
         dados_tabela = carteira.obter_dados_tabela()
@@ -275,12 +294,14 @@ def obter_carteira(carteira_id: str):
     """
     Obtém os dados atuais da carteira.
     """
-    if carteira_id not in _carteiras:
-        raise HTTPException(status_code=404, detail="Carteira não encontrada")
-    
-    try:
+    with _carteiras_lock:
+        if carteira_id not in _carteiras:
+            raise HTTPException(status_code=404, detail="Carteira não encontrada")
+        
         carteira = _carteiras[carteira_id]["carteira"]
         tipo_carteira = _carteiras[carteira_id]["tipo"]
+    
+    try:
         dados_tabela = carteira.obter_dados_tabela()
         titulos = [TituloCarteiraData(**dado) for dado in dados_tabela]
         

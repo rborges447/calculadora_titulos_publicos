@@ -1,13 +1,15 @@
 """
 API FastAPI para cálculo de títulos públicos brasileiros
 """
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
-from .routers import ntnb, ltn, lft, ntnf, equivalencia, vencimentos, carteiras
-from .utils import precisa_atualizar_mercado, marcar_atualizado
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
 from titulospub.dados.orquestrador import VariaveisMercado
+
+from .routers import carteiras, equivalencia, lft, ltn, ntnb, ntnf, vencimentos
+from .utils import marcar_atualizado, precisa_atualizar_mercado
 
 
 @asynccontextmanager

@@ -167,3 +167,6 @@ class CarteiraNTNB:
         """Número total de títulos na carteira."""
         return len(self._titulos)
 
+
+
+

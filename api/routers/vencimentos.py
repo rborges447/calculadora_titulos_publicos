@@ -1,21 +1,18 @@
 """
 Endpoints para obter listas de vencimentos e códigos disponíveis
 """
-from fastapi import APIRouter
-from typing import List, Dict
+from typing import Dict, List
 
+from fastapi import APIRouter
+
+from api.models import CodigosDIResponse, TodosVencimentosResponse, VencimentosResponse
 from titulospub.dados.vencimentos import (
-    get_vencimentos_ltn,
-    get_vencimentos_lft,
-    get_vencimentos_ntnb,
-    get_vencimentos_ntnf,
     get_codigos_di_disponiveis,
     get_todos_vencimentos,
-)
-from api.models import (
-    VencimentosResponse,
-    CodigosDIResponse,
-    TodosVencimentosResponse,
+    get_vencimentos_lft,
+    get_vencimentos_ltn,
+    get_vencimentos_ntnb,
+    get_vencimentos_ntnf,
 )
 
 router = APIRouter(prefix="/vencimentos", tags=["Vencimentos"])

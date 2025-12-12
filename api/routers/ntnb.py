@@ -1,12 +1,13 @@
 """
 Endpoints para título NTNB (Nota do Tesouro Nacional - Série B)
 """
-from fastapi import APIRouter, HTTPException
 from datetime import datetime
-import pandas as pd
 
+import pandas as pd
+from fastapi import APIRouter, HTTPException
+
+from api.models import NTNBHedgeDIRequest, NTNBHedgeDIResponse, NTNBRequest, NTNBResponse
 from titulospub import NTNB
-from api.models import NTNBRequest, NTNBResponse, NTNBHedgeDIRequest, NTNBHedgeDIResponse
 
 router = APIRouter(prefix="/titulos/ntnb", tags=["NTNB"])
 

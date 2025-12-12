@@ -7,9 +7,10 @@ Os modelos Pydantic servem para:
 3. Gerar documentação automática na API
 4. Fornecer type hints para melhor desenvolvimento
 """
-from typing import Optional
-from pydantic import BaseModel, Field
 from datetime import datetime
+from typing import Optional
+
+from pydantic import BaseModel, Field
 
 
 # ==================== REQUEST MODELS ====================

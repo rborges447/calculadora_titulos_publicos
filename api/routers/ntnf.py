@@ -1,12 +1,13 @@
 """
 Endpoints para título NTNF (Nota do Tesouro Nacional - Série F)
 """
-from fastapi import APIRouter, HTTPException
 from datetime import datetime
-import pandas as pd
 
-from titulospub import NTNF
+import pandas as pd
+from fastapi import APIRouter, HTTPException
+
 from api.models import NTNFRequest, NTNFResponse
+from titulospub import NTNF
 
 router = APIRouter(prefix="/titulos/ntnf", tags=["NTNF"])
 
@@ -85,6 +86,9 @@ def criar_ntnf(request: NTNFRequest):
         )
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+
 
 
 

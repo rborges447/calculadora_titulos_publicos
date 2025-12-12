@@ -3,8 +3,8 @@ Endpoints para cálculo de equivalência entre títulos públicos
 """
 from fastapi import APIRouter, HTTPException
 
-from titulospub import equivalencia
 from api.models import EquivalenciaRequest, EquivalenciaResponse
+from titulospub import equivalencia
 
 router = APIRouter(prefix="/equivalencia", tags=["Equivalência"])
 
@@ -65,6 +65,9 @@ def calcular_equivalencia(request: EquivalenciaRequest):
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao calcular equivalência: {str(e)}")
+
+
+
 
 
 
