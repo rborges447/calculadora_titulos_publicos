@@ -1,10 +1,10 @@
 import pandas as pd
 
-from titulospub.dados.orquestrador import VariaveisMercado
-from titulospub.utils import adicionar_dias_uteis
-from titulospub.core.ntnf.calculo_ntnf import calcular_ntnf
 from titulospub.core.auxilio import vencimento_codigo_bmf
 from titulospub.core.di.calculo_di import calculo_dv01_di
+from titulospub.core.ntnf.calculo_ntnf import calcular_ntnf
+from titulospub.dados.orquestrador import VariaveisMercado
+from titulospub.utils import adicionar_dias_uteis
 
 class NTNF:
     """
@@ -267,6 +267,11 @@ class NTNF:
     def hedge_di(self):
         """Hedge DI calculado."""
         return self._hedge_di
+    
+    @property
+    def taxa_anbima(self):
+        """Taxa ANBIMA do título."""
+        return self._anbima
 
     # ==================== MÉTODOS DE CÁLCULO ====================
     

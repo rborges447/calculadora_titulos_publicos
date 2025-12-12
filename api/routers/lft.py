@@ -1,26 +1,13 @@
 """
 Endpoints para título LFT (Letra Financeira do Tesouro)
 """
-from datetime import datetime
-
-import pandas as pd
 from fastapi import APIRouter, HTTPException
 
 from api.models import LFTRequest, LFTResponse
+from api.utils import serialize_datetime
 from titulospub import LFT
 
 router = APIRouter(prefix="/titulos/lft", tags=["LFT"])
-
-
-def _serialize_datetime(dt) -> str:
-    """Serializa datetime para string ISO"""
-    if dt is None:
-        return None
-    if isinstance(dt, pd.Timestamp):
-        return dt.strftime("%Y-%m-%d")
-    if isinstance(dt, datetime):
-        return dt.strftime("%Y-%m-%d")
-    return str(dt)
 
 
 @router.post("", response_model=LFTResponse, summary="Criar título LFT")
@@ -59,9 +46,9 @@ def criar_lft(request: LFTRequest):
         return LFTResponse(
             tipo="LFT",
             nome=getattr(titulo, "_nome", "LFT"),
-            data_vencimento=_serialize_datetime(titulo._data_vencimento_titulo),
-            data_base=_serialize_datetime(titulo.data_base),
-            data_liquidacao=_serialize_datetime(titulo.data_liquidacao),
+            data_vencimento=serialize_datetime(titulo._data_vencimento_titulo),
+            data_base=serialize_datetime(titulo.data_base),
+            data_liquidacao=serialize_datetime(titulo.data_liquidacao),
             dias_liquidacao=titulo.dias_liquidacao,
             taxa=titulo.taxa,
             quantidade=titulo.quantidade,
@@ -69,10 +56,18 @@ def criar_lft(request: LFTRequest):
             pu_d0=titulo.pu_d0,
             pu_termo=getattr(titulo, "pu_termo", None),
             pu_carregado=getattr(titulo, "pu_carregado", None),
-            cotacao=getattr(titulo, "cotacap", None),
+            cotacao=getattr(titulo, "cotacap", None),  # LFT usa propriedade 'cotacap'
+            taxa_anbima=getattr(titulo, "taxa_anbima", None),
         )
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=400,
+            detail=f"Erro ao criar título LFT: {str(e)}"
+        )
 
 
 

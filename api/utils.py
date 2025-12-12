@@ -2,9 +2,10 @@
 Utilitários para a API
 """
 import json
-import os
 from datetime import date, datetime
 from pathlib import Path
+
+import pandas as pd
 
 # Caminho para arquivo de controle de atualização
 CONTROLE_ATUALIZACAO_FILE = Path("api/.ultima_atualizacao.json")
@@ -77,6 +78,25 @@ def get_ultima_atualizacao() -> str:
             return dados.get('data', 'Nunca')
     except Exception:
         return "Nunca"
+
+
+def serialize_datetime(dt) -> str:
+    """
+    Serializa datetime para string ISO (YYYY-MM-DD).
+    
+    Args:
+        dt: Objeto datetime, pd.Timestamp ou None
+    
+    Returns:
+        str: Data formatada ou None
+    """
+    if dt is None:
+        return None
+    if isinstance(dt, pd.Timestamp):
+        return dt.strftime("%Y-%m-%d")
+    if isinstance(dt, datetime):
+        return dt.strftime("%Y-%m-%d")
+    return str(dt)
 
 
 

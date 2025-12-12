@@ -1,19 +1,29 @@
 import os
+
 import pandas as pd
 
-from titulospub.scraping.anbima_scraping import scrap_cdi, scrap_feriados, scrap_proj_ipca, scrap_anbimas, scrap_vna_lft
-from titulospub.scraping.sidra_scraping import puxar_valores_ipca_fechado
-from titulospub.scraping import scrap_bmf_net
-
-from titulospub.dados.backup import backup_cdi, backup_feriados, backup_ipca_fechado, backup_ipca_proj, backup_anbimas, backup_bmf
-from titulospub.dados.cache import load_cache, save_cache, clear_cache
-from titulospub.dados.ipca import dicionario_ipca
 from titulospub.dados.anbimas import anbimas
+from titulospub.dados.backup import (
+    backup_anbimas,
+    backup_bmf,
+    backup_cdi,
+    backup_feriados,
+    backup_ipca_fechado,
+    backup_ipca_proj,
+)
 from titulospub.dados.bmf import ajustes_bmf, ajustes_bmf_net
-
+from titulospub.dados.cache import clear_cache, load_cache, save_cache
+from titulospub.dados.ipca import dicionario_ipca
+from titulospub.scraping import scrap_bmf_net
+from titulospub.scraping.anbima_scraping import (
+    scrap_anbimas,
+    scrap_cdi,
+    scrap_feriados,
+    scrap_proj_ipca,
+    scrap_vna_lft,
+)
+from titulospub.scraping.sidra_scraping import puxar_valores_ipca_fechado
 from titulospub.utils.datas import adicionar_dias_uteis
-
-#from titulospub.utils.paths import path_backup_csv
 
 
 class VariaveisMercado:
@@ -240,13 +250,6 @@ class VariaveisMercado:
         self._cdi = None
         self._anbimas = None
         self._vna_lft = None
-    '''
-    def _carregar_backup_csv(self, nome_arquivo):
-        caminho = path_backup_csv(nome_arquivo)
-        if not os.path.exists(caminho):
-            raise FileNotFoundError(f"❌ CSV de backup não encontrado: {caminho}")
-        return pd.read_csv(caminho)
-    '''
 if __name__ == "__main__":
     print("Testando orquestrador de variáveis de mercado...")
     

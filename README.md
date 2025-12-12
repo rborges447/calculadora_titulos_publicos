@@ -1,25 +1,36 @@
 # Calculadora de Títulos Públicos
 
-Sistema completo para cálculo e análise de títulos públicos brasileiros com API FastAPI e interface Streamlit.
+Sistema completo para cálculo e análise de títulos públicos brasileiros com API FastAPI e interface Dash.
 
-## Estrutura do Projeto
+## Arquitetura do Projeto
+
+O projeto segue uma arquitetura em camadas bem definida:
 
 ```
 calculadora_titulos_publicos/
-├── api/                    # API FastAPI
-│   ├── main.py            # Aplicação principal
-│   ├── models.py          # Modelos Pydantic
+├── titulospub/            # Camada de Domínio (lógica de negócio)
+│   ├── core/             # Classes de títulos e cálculos
+│   ├── dados/            # Dados de mercado e cache
+│   ├── scraping/         # Coleta de dados externos
+│   └── utils/            # Utilitários
+├── api/                   # Camada de API (FastAPI)
+│   ├── main.py           # Aplicação principal
+│   ├── models.py         # Modelos Pydantic
 │   └── routers/          # Endpoints por tipo de título
-├── pages/                  # Páginas Streamlit
-│   ├── 1_LTN.py
-│   ├── 2_LFT.py
-│   ├── 3_NTNB.py
-│   └── 4_NTNF.py
-├── titulospub/            # Módulo principal (pacote Python)
-├── streamlit_app.py        # App Streamlit principal
-├── run_api.py             # Script para iniciar API
-└── requirements.txt       # Dependências
+├── dash_app/              # Camada de Frontend (Dash)
+│   ├── app.py            # Aplicação Dash
+│   ├── pages/            # Páginas da interface
+│   ├── components/       # Componentes reutilizáveis
+│   └── utils/             # Utilitários do frontend
+├── tests/                 # Testes automatizados
+├── run_api.py            # Script para iniciar API
+└── run_dash_app.py       # Script para iniciar Dash
 ```
+
+**Princípios Arquiteturais:**
+- `titulospub/` é completamente independente de frameworks web
+- `api/` importa `titulospub/` mas não executa cálculos
+- `dash_app/` consome apenas a API via HTTP (não importa `titulospub/`)
 
 ## Instalação
 
@@ -40,23 +51,46 @@ python run_api.py
 ```
 
 A API estará disponível em: http://localhost:8000
-- Documentação: http://localhost:8000/docs
+- Documentação interativa: http://localhost:8000/docs
+- Documentação alternativa: http://localhost:8000/redoc
 
-### 2. Iniciar Interface Streamlit
+**Configuração de Workers:**
+- Por padrão, usa 1 worker (adequado para desenvolvimento)
+- Para produção com múltiplos workers, configure via variável de ambiente:
+  ```bash
+  export API_WORKERS=4
+  python run_api.py
+  ```
+
+### 2. Iniciar Interface Dash
 
 ```bash
-streamlit run streamlit_app.py
+python run_dash_app.py
 ```
 
-A interface abrirá automaticamente no navegador.
+A interface abrirá automaticamente em: http://127.0.0.1:8050
+
+**Nota:** O Dash consome a API via HTTP, então a API deve estar rodando primeiro.
 
 ## Endpoints da API
 
+### Títulos Individuais
 - `POST /titulos/ltn` - Criar título LTN
 - `POST /titulos/lft` - Criar título LFT
 - `POST /titulos/ntnb` - Criar título NTNB
 - `POST /titulos/ntnb/hedge-di` - Calcular hedge DI para NTNB
 - `POST /titulos/ntnf` - Criar título NTNF
+
+### Carteiras
+- `POST /carteiras/{tipo}` - Criar carteira (ltn, lft, ntnb, ntnf)
+- `GET /carteiras/{carteira_id}` - Obter dados da carteira
+- `PUT /carteiras/{carteira_id}/taxa` - Atualizar taxa de um título
+- `PUT /carteiras/{carteira_id}/dias` - Atualizar dias de liquidação
+
+### Outros
+- `POST /equivalencia` - Calcular equivalência entre títulos
+- `GET /vencimentos/{tipo}` - Listar vencimentos disponíveis
+- `GET /health` - Health check da API
 
 ## Uso do Pacote Python
 
@@ -73,11 +107,26 @@ eq = equivalencia("LTN", "2025-01-01", "NTNB", "2035-05-15",
                   qtd1=10000, criterio="dv")
 ```
 
+## Testes
+
+```bash
+# Instalar dependências de teste
+pip install pytest pytest-cov
+
+# Executar todos os testes
+pytest tests/ -v
+
+# Executar com cobertura
+pytest tests/ --cov=titulospub --cov=api --cov=dash_app
+```
+
 ## Desenvolvido com
 
-- FastAPI - Framework web moderno
-- Streamlit - Interface web interativa
-- Python 3.8+
+- **FastAPI** - Framework web moderno para API REST
+- **Dash** - Framework web para interface interativa
+- **Python 3.8+** - Linguagem de programação
+- **Pydantic** - Validação de dados
+- **Pandas** - Manipulação de dados financeiros
 
 
 

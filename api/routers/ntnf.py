@@ -1,26 +1,13 @@
 """
 Endpoints para título NTNF (Nota do Tesouro Nacional - Série F)
 """
-from datetime import datetime
-
-import pandas as pd
 from fastapi import APIRouter, HTTPException
 
 from api.models import NTNFRequest, NTNFResponse
+from api.utils import serialize_datetime
 from titulospub import NTNF
 
 router = APIRouter(prefix="/titulos/ntnf", tags=["NTNF"])
-
-
-def _serialize_datetime(dt) -> str:
-    """Serializa datetime para string ISO"""
-    if dt is None:
-        return None
-    if isinstance(dt, pd.Timestamp):
-        return dt.strftime("%Y-%m-%d")
-    if isinstance(dt, datetime):
-        return dt.strftime("%Y-%m-%d")
-    return str(dt)
 
 
 @router.post("", response_model=NTNFResponse, summary="Criar título NTNF")
@@ -65,9 +52,9 @@ def criar_ntnf(request: NTNFRequest):
         return NTNFResponse(
             tipo="NTNF",
             nome=getattr(titulo, "_nome", "NTNF"),
-            data_vencimento=_serialize_datetime(titulo._data_vencimento_titulo),
-            data_base=_serialize_datetime(titulo.data_base),
-            data_liquidacao=_serialize_datetime(titulo.data_liquidacao),
+            data_vencimento=serialize_datetime(titulo._data_vencimento_titulo),
+            data_base=serialize_datetime(titulo.data_base),
+            data_liquidacao=serialize_datetime(titulo.data_liquidacao),
             dias_liquidacao=titulo.dias_liquidacao,
             taxa=titulo.taxa,
             quantidade=titulo.quantidade,
@@ -83,9 +70,17 @@ def criar_ntnf(request: NTNFRequest):
             ajuste_di=getattr(titulo, "ajuste_di", None),
             premio_anbima=getattr(titulo, "premio_anbima", None),
             hedge_di=getattr(titulo, "hedge_di", None),
+            taxa_anbima=getattr(titulo, "taxa_anbima", None),
         )
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=400,
+            detail=f"Erro ao criar título NTNF: {str(e)}"
+        )
 
 
 

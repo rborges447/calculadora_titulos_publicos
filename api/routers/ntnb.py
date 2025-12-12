@@ -1,26 +1,13 @@
 """
 Endpoints para título NTNB (Nota do Tesouro Nacional - Série B)
 """
-from datetime import datetime
-
-import pandas as pd
 from fastapi import APIRouter, HTTPException
 
 from api.models import NTNBHedgeDIRequest, NTNBHedgeDIResponse, NTNBRequest, NTNBResponse
+from api.utils import serialize_datetime
 from titulospub import NTNB
 
 router = APIRouter(prefix="/titulos/ntnb", tags=["NTNB"])
-
-
-def _serialize_datetime(dt) -> str:
-    """Serializa datetime para string ISO"""
-    if dt is None:
-        return None
-    if isinstance(dt, pd.Timestamp):
-        return dt.strftime("%Y-%m-%d")
-    if isinstance(dt, datetime):
-        return dt.strftime("%Y-%m-%d")
-    return str(dt)
 
 
 @router.post("", response_model=NTNBResponse, summary="Criar título NTNB")
@@ -70,9 +57,9 @@ def criar_ntnb(request: NTNBRequest):
         return NTNBResponse(
             tipo="NTNB",
             nome=getattr(titulo, "_nome", "NTNB"),
-            data_vencimento=_serialize_datetime(titulo._data_vencimento_titulo),
-            data_base=_serialize_datetime(titulo.data_base),
-            data_liquidacao=_serialize_datetime(titulo.data_liquidacao),
+            data_vencimento=serialize_datetime(titulo._data_vencimento_titulo),
+            data_base=serialize_datetime(titulo.data_base),
+            data_liquidacao=serialize_datetime(titulo.data_liquidacao),
             dias_liquidacao=titulo.dias_liquidacao,
             taxa=titulo.taxa,
             quantidade=titulo.quantidade,
@@ -87,16 +74,24 @@ def criar_ntnb(request: NTNBRequest):
             premio=getattr(titulo, "premio", None),
             cotacao=getattr(titulo, "cotacao", None),
             duration=getattr(titulo, "duration", None),
-            data_vencimento_duration=_serialize_datetime(getattr(titulo, "_data_vencimento_duration", None)),
+            data_vencimento_duration=serialize_datetime(getattr(titulo, "_data_vencimento_duration", None)),
             dias_duration=getattr(titulo, "_dias_duration", None),
             ajuste_dap=getattr(titulo, "ajuste_dap", None),
             premio_anbima_dap=getattr(titulo, "premio_anbima_dap", None),
             hedge_dap=getattr(titulo, "hedge_dap", None),
             vna=getattr(titulo, "_vna", None),
             vna_tesouro=getattr(titulo, "_vna_tesouro", None),
+            taxa_anbima=getattr(titulo, "taxa_anbima", None),
         )
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=400,
+            detail=f"Erro ao criar título NTNB: {str(e)}"
+        )
 
 
 @router.post("/hedge-di", response_model=NTNBHedgeDIResponse, summary="Calcular hedge DI para NTNB")
@@ -145,7 +140,7 @@ def calcular_hedge_di_ntnb(request: NTNBHedgeDIRequest):
         # Construir resposta
         return NTNBHedgeDIResponse(
             tipo="NTNB",
-            data_vencimento=_serialize_datetime(titulo._data_vencimento_titulo),
+            data_vencimento=serialize_datetime(titulo._data_vencimento_titulo),
             codigo_di=request.codigo_di,
             quantidade=titulo.quantidade,
             financeiro=titulo.financeiro,
@@ -153,6 +148,13 @@ def calcular_hedge_di_ntnb(request: NTNBHedgeDIRequest):
             hedge_di=hedge_di,
             ajuste_di=ajuste_di,
         )
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=400,
+            detail=f"Erro ao calcular hedge DI: {str(e)}"
+        )
 

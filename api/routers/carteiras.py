@@ -7,8 +7,6 @@ permitindo ajustar parâmetros individuais sem recalcular todos os títulos.
 NOTA: Esta implementação usa estado em memória que não funciona com múltiplos workers.
 Para produção com múltiplos workers, considere usar banco de dados ou cache compartilhado (Redis).
 """
-import base64
-import json
 import threading
 import uuid
 from typing import Dict, Optional
@@ -78,8 +76,15 @@ def criar_carteira_ltn(request: CarteiraCreateRequest):
             total_titulos=carteira.total_titulos,
             titulos=titulos,
         )
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=500,
+            detail="Erro interno ao criar carteira. Verifique os logs do servidor."
+        )
 
 
 @router.post("/lft", response_model=CarteiraResponse, summary="Criar carteira LFT")
@@ -112,8 +117,15 @@ def criar_carteira_lft(request: CarteiraCreateRequest):
             total_titulos=carteira.total_titulos,
             titulos=titulos,
         )
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=500,
+            detail="Erro interno ao criar carteira. Verifique os logs do servidor."
+        )
 
 
 @router.post("/ntnb", response_model=CarteiraResponse, summary="Criar carteira NTNB")
@@ -146,8 +158,15 @@ def criar_carteira_ntnb(request: CarteiraCreateRequest):
             total_titulos=carteira.total_titulos,
             titulos=titulos,
         )
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=500,
+            detail="Erro interno ao criar carteira. Verifique os logs do servidor."
+        )
 
 
 @router.post("/ntnf", response_model=CarteiraResponse, summary="Criar carteira NTNF")
@@ -181,8 +200,15 @@ def criar_carteira_ntnf(request: CarteiraCreateRequest):
             total_titulos=carteira.total_titulos,
             titulos=titulos,
         )
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=500,
+            detail="Erro interno ao criar carteira. Verifique os logs do servidor."
+        )
 
 
 # ==================== ROTAS DE ATUALIZAÇÃO (ESPECÍFICAS - DEVEM VIR ANTES DA GENÉRICA) ====================
@@ -217,9 +243,14 @@ def atualizar_taxa_carteira(carteira_id: str, request: CarteiraUpdateTaxaRequest
             titulos=titulos,
         )
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=422, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=500,
+            detail="Erro interno ao atualizar carteira. Verifique os logs do servidor."
+        )
 
 
 @router.put("/{carteira_id}/premio-di", response_model=CarteiraResponse, summary="Atualizar prêmio+DI")
@@ -252,9 +283,14 @@ def atualizar_premio_di_carteira(carteira_id: str, request: CarteiraUpdatePremio
             titulos=titulos,
         )
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=422, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=500,
+            detail="Erro interno ao atualizar carteira. Verifique os logs do servidor."
+        )
 
 
 @router.put("/{carteira_id}/dias", response_model=CarteiraResponse, summary="Atualizar dias de liquidação")
@@ -283,8 +319,15 @@ def atualizar_dias_liquidacao_carteira(carteira_id: str, request: CarteiraUpdate
             total_titulos=carteira.total_titulos,
             titulos=titulos,
         )
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=500,
+            detail="Erro interno ao criar carteira. Verifique os logs do servidor."
+        )
 
 
 # ==================== ROTA GENÉRICA (DEVE VIR POR ÚLTIMO) ====================
@@ -313,6 +356,13 @@ def obter_carteira(carteira_id: str):
             total_titulos=carteira.total_titulos,
             titulos=titulos,
         )
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=500,
+            detail="Erro interno ao criar carteira. Verifique os logs do servidor."
+        )
 

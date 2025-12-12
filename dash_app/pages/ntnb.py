@@ -192,9 +192,7 @@ def atualizar_taxa_callback(timestamp, data_atual, active_cell, carteira_id, dad
     if active_cell:
         row_idx = active_cell.get("row")
         col_id = active_cell.get("column_id")
-        print(f"[DEBUG] active_cell detectado: row={row_idx}, col={col_id}")
         if col_id != "taxa":
-            print(f"[DEBUG] Coluna editada não é 'taxa', ignorando")
             return data_atual, carteira_id, dados_originais or []
         
         # Usar o vencimento_raw da linha editada para identificar o título correto
@@ -202,8 +200,6 @@ def atualizar_taxa_callback(timestamp, data_atual, active_cell, carteira_id, dad
             linha_editada = data_atual[row_idx]
             vencimento_raw = linha_editada.get("vencimento_raw")
             nova_taxa = linha_editada.get("taxa")
-            vencimento_exibicao = linha_editada.get("vencimento")
-            print(f"[DEBUG] Linha editada (índice {row_idx}): vencimento={vencimento_exibicao} ({vencimento_raw}), nova_taxa={nova_taxa}")
             
             # VALIDAÇÃO: Comparar com dados originais para garantir que estamos na linha certa
             # Se a taxa na linha row_idx não mudou em relação aos dados originais, pode ser que
@@ -215,24 +211,19 @@ def atualizar_taxa_callback(timestamp, data_atual, active_cell, carteira_id, dad
                 
                 if taxa_original == taxa_atual:
                     # A taxa não mudou nesta linha - procurar em todas as linhas qual realmente mudou
-                    print(f"[DEBUG] AVISO: Taxa na linha {row_idx} não mudou! Procurando em todas as linhas...")
                     for i, (orig, atual) in enumerate(zip(dados_originais, data_atual)):
                         taxa_orig = str(orig.get("taxa", "")).strip()
                         taxa_at = str(atual.get("taxa", "")).strip()
                         if taxa_orig != taxa_at:
-                            print(f"[DEBUG] Mudança encontrada na linha {i}: vencimento={atual.get('vencimento')} ({atual.get('vencimento_raw')}), taxa {taxa_orig} -> {taxa_at}")
                             # Usar esta linha em vez da do active_cell
                             vencimento_raw = atual.get("vencimento_raw")
                             nova_taxa = atual.get("taxa")
                             row_idx = i
-                            print(f"[DEBUG] Corrigido para linha {row_idx}, vencimento={vencimento_raw}")
                             break
         else:
-            print(f"[DEBUG] row_idx inválido do active_cell: {row_idx}")
             return data_atual, carteira_id, dados_originais or []
     else:
         # Se não há active_cell, comparar com dados originais para encontrar mudança
-        print(f"[DEBUG] active_cell não disponível, comparando com dados originais")
         if dados_originais and len(dados_originais) == len(data_atual):
             mudancas = []
             for i, (original, atual) in enumerate(zip(dados_originais, data_atual)):
@@ -247,23 +238,18 @@ def atualizar_taxa_callback(timestamp, data_atual, active_cell, carteira_id, dad
                 row_idx = mudancas[0][0]
                 vencimento_raw = mudancas[0][3]
                 nova_taxa = mudancas[0][2]
-                print(f"[DEBUG] Uma mudança detectada: linha {row_idx}, vencimento={vencimento_raw}, taxa {mudancas[0][1]} -> {mudancas[0][2]}")
             elif len(mudancas) > 1:
                 # Múltiplas mudanças - usar a última (mais recente)
                 row_idx = mudancas[-1][0]
                 vencimento_raw = mudancas[-1][3]
                 nova_taxa = mudancas[-1][2]
-                print(f"[DEBUG] Múltiplas mudanças detectadas ({len(mudancas)}), usando a última: linha {row_idx}, vencimento={vencimento_raw}")
             else:
-                print(f"[DEBUG] Nenhuma mudança detectada na comparação")
                 return data_atual, carteira_id, dados_originais or []
         else:
-            print(f"[DEBUG] Dados originais não disponíveis ou tamanhos diferentes")
             return data_atual, carteira_id, dados_originais or []
     
     # Validar que temos os dados necessários
     if not vencimento_raw:
-        print(f"[DEBUG] vencimento_raw não encontrado")
         return data_atual, carteira_id, dados_originais or []
     
     if nova_taxa is None:
@@ -271,7 +257,6 @@ def atualizar_taxa_callback(timestamp, data_atual, active_cell, carteira_id, dad
         if row_idx is not None and row_idx < len(data_atual):
             nova_taxa = data_atual[row_idx].get("taxa")
         else:
-            print(f"[DEBUG] Não foi possível determinar a nova taxa")
             return data_atual, carteira_id, dados_originais or []
     
     # Encontrar o índice correto na lista atual usando vencimento_raw
@@ -283,15 +268,11 @@ def atualizar_taxa_callback(timestamp, data_atual, active_cell, carteira_id, dad
             break
     
     if row_idx_correto is None:
-        print(f"[DEBUG] Vencimento {vencimento_raw} não encontrado na lista atual")
         return data_atual, carteira_id, dados_originais or []
     
     # Usar o índice correto
     row_idx = row_idx_correto
     linha = data_atual[row_idx]
-    vencimento_exibicao = linha.get("vencimento")
-    
-    print(f"[DEBUG] Linha corrigida: índice {row_idx}, vencimento={vencimento_exibicao} ({vencimento_raw}), nova_taxa={nova_taxa}")
     
     # Verificar se a taxa mudou
     if not nova_taxa or nova_taxa == "":
@@ -304,10 +285,7 @@ def atualizar_taxa_callback(timestamp, data_atual, active_cell, carteira_id, dad
     # Converter do formato brasileiro para float
     taxa_float = parse_numero_brasileiro(nova_taxa)
     if taxa_float is None:
-        print(f"[DEBUG] Erro ao converter taxa para float: {nova_taxa}")
         return data_atual, carteira_id, dados_originais or []
-    
-    print(f"[DEBUG] Atualizando taxa: vencimento={vencimento_raw}, taxa={taxa_float}, carteira_id={carteira_id}, row_idx={row_idx}")
     
     # Tentar atualizar na carteira existente
     if carteira_id:
@@ -321,24 +299,15 @@ def atualizar_taxa_callback(timestamp, data_atual, active_cell, carteira_id, dad
                 dados_atualizados[row_idx]["taxa"] = formatar_taxa_brasileira(taxa_float)  # Formatar no padrão brasileiro
                 # Atualizar dados originais também
                 dados_originais_atualizados = [dict(d) for d in dados_atualizados]
-                print(f"[DEBUG] Taxa atualizada com sucesso! PU: {dados_atualizados[row_idx]['pu_termo']}")
                 return dados_atualizados, carteira_id, dados_originais_atualizados
-            else:
-                print(f"[DEBUG] Titulo nao encontrado na resposta")
-        else:
-            print(f"[DEBUG] Falha ao atualizar: {resultado.get('error', 'Erro desconhecido')}")
     
     # Se falhou ou carteira não existe, recriar
-    print(f"[DEBUG] Recriando carteira...")
     try:
         ok_criar, resultado_criar = criar_carteira("ntnb", dias_liquidacao=dias if dias is not None else 1)
         if not ok_criar:
-            print(f"[DEBUG] Falha ao recriar carteira")
             return data_atual, None, dados_originais or []
         
         novo_id = resultado_criar.get("carteira_id")
-        print(f"[DEBUG] Carteira recriada: {novo_id}")
-        
         ok_atualizar, resultado_atualizar = atualizar_taxa("ntnb", novo_id, vencimento_raw, taxa_float)
         
         if ok_atualizar:
@@ -349,11 +318,9 @@ def atualizar_taxa_callback(timestamp, data_atual, active_cell, carteira_id, dad
                 dados_atualizados[row_idx]["pu_termo"] = formatar_pu_brasileiro(titulo.get("pu_termo")) if titulo.get("pu_termo") else ""
                 dados_atualizados[row_idx]["taxa"] = formatar_taxa_brasileira(taxa_float)
                 dados_originais_atualizados = [dict(d) for d in dados_atualizados]
-                print(f"[DEBUG] Taxa atualizada na nova carteira! PU: {dados_atualizados[row_idx]['pu_termo']}")
                 return dados_atualizados, novo_id, dados_originais_atualizados
     except Exception as e:
-        print(f"[ERRO] Erro ao recriar carteira: {e}")
-        import traceback
-        traceback.print_exc()
+        # Log de erro apenas se necessário (sem print de debug)
+        pass
     
     return data_atual, carteira_id, dados_originais or []

@@ -60,11 +60,17 @@ def calcular_equivalencia(request: EquivalenciaRequest):
             criterio=request.criterio
         )
     except KeyError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=f"Parâmetro inválido: {str(e)}")
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=422, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro ao calcular equivalência: {str(e)}")
+        # Log do erro completo para debugging (sem expor ao cliente)
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=500,
+            detail="Erro interno ao calcular equivalência. Verifique os logs do servidor."
+        )
 
 
 

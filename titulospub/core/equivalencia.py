@@ -1,9 +1,9 @@
 """
 Função para cálculo de equivalência entre títulos públicos
 """
-from .ntnb.titulo_ntnb import NTNB
-from .ltn.titulo_ltn import LTN
 from .lft.titulo_lft import LFT
+from .ltn.titulo_ltn import LTN
+from .ntnb.titulo_ntnb import NTNB
 from .ntnf.titulo_ntnf import NTNF
 
 

@@ -1,13 +1,13 @@
 import pandas as pd
 
+from titulospub.core.auxilio import vencimento_codigo_bmf
+from titulospub.core.dap.calculo_dap import calculo_financeiro_dap, dv01_dap
+from titulospub.core.di.calculo_di import calculo_dv01_di
+from titulospub.core.ntnb.calculo_ntnb import calculo_ntnb, calculo_taxa_pu_ntnb
 from titulospub.core.ntnb.cash_flow_ntnb import cash_flow_ntnb
+from titulospub.core.ntnb.vna_ntnb import calculo_vna_ajustado_ntnb
 from titulospub.dados.orquestrador import VariaveisMercado
 from titulospub.utils.datas import adicionar_dias_uteis
-from titulospub.core.ntnb.calculo_ntnb import calculo_ntnb, calculo_taxa_pu_ntnb
-from titulospub.core.ntnb.vna_ntnb import calculo_vna_ajustado_ntnb
-from titulospub.core.dap.calculo_dap import calculo_financeiro_dap, dv01_dap
-from titulospub.core.auxilio import vencimento_codigo_bmf
-from titulospub.core.di.calculo_di import calculo_dv01_di
 
 class NTNB:
     """
@@ -420,3 +420,8 @@ class NTNB:
     def hedge_dap(self):
         """Hedge DAP calculado."""
         return self._hedge_dap
+    
+    @property
+    def taxa_anbima(self):
+        """Taxa ANBIMA do título."""
+        return self._anbima

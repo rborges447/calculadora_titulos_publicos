@@ -1,10 +1,10 @@
 import pandas as pd
 
-from titulospub.dados.orquestrador import VariaveisMercado
-from titulospub.utils import adicionar_dias_uteis
-from titulospub.core.ltn.calculo_ltn import calcular_ltn
 from titulospub.core.auxilio import vencimento_codigo_bmf
 from titulospub.core.di.calculo_di import calculo_dv01_di
+from titulospub.core.ltn.calculo_ltn import calcular_ltn
+from titulospub.dados.orquestrador import VariaveisMercado
+from titulospub.utils import adicionar_dias_uteis
 
 class LTN:
     """
@@ -349,3 +349,8 @@ class LTN:
     def hedge_di(self):
         """Hedge DI calculado."""
         return self._hedge_di
+    
+    @property
+    def taxa_anbima(self):
+        """Taxa ANBIMA do título."""
+        return self._anbima

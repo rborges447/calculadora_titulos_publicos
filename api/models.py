@@ -311,6 +311,7 @@ class LTNResponse(BaseModel):
     ajuste_di: Optional[float] = Field(None, description="Ajuste DI")
     premio_anbima: Optional[float] = Field(None, description="Prêmio ANBIMA")
     hedge_di: Optional[int] = Field(None, description="Hedge DI (quantidade de contratos)")
+    taxa_anbima: Optional[float] = Field(None, description="Taxa ANBIMA do título (%)")
     
     class Config:
         json_encoders = {
@@ -333,6 +334,7 @@ class LFTResponse(BaseModel):
     pu_termo: Optional[float] = Field(None, description="Preço unitário a termo")
     pu_carregado: Optional[float] = Field(None, description="Preço unitário carregado")
     cotacao: Optional[float] = Field(None, description="Cotação")
+    taxa_anbima: Optional[float] = Field(None, description="Taxa ANBIMA do título (%)")
     
     class Config:
         json_encoders = {
@@ -368,6 +370,7 @@ class NTNBResponse(BaseModel):
     hedge_dap: Optional[int] = Field(None, description="Hedge DAP (quantidade de contratos)")
     vna: Optional[float] = Field(None, description="VNA ajustado")
     vna_tesouro: Optional[float] = Field(None, description="VNA Tesouro")
+    taxa_anbima: Optional[float] = Field(None, description="Taxa ANBIMA do título (%)")
     
     class Config:
         json_encoders = {
@@ -397,6 +400,7 @@ class NTNFResponse(BaseModel):
     ajuste_di: Optional[float] = Field(None, description="Ajuste DI")
     premio_anbima: Optional[float] = Field(None, description="Prêmio ANBIMA")
     hedge_di: Optional[int] = Field(None, description="Hedge DI (quantidade de contratos)")
+    taxa_anbima: Optional[float] = Field(None, description="Taxa ANBIMA do título (%)")
     
     class Config:
         json_encoders = {

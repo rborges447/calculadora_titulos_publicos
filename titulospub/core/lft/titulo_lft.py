@@ -1,8 +1,8 @@
 import pandas as pd
 
+from titulospub.core.lft.calculo_lft import calcular_lft
 from titulospub.dados.orquestrador import VariaveisMercado
 from titulospub.utils import adicionar_dias_uteis
-from titulospub.core.lft.calculo_lft import calcular_lft
 
 class LFT:
     def __init__(self, data_vencimento_titulo: str, 
@@ -163,4 +163,6 @@ class LFT:
     def pu_carregado(self): return self._pu_carregado
     @property
     def dv01(self): return self._dv01
+    @property
+    def taxa_anbima(self): return self._anbima
     
