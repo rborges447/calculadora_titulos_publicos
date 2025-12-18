@@ -30,6 +30,10 @@ def calcular_equivalencia(request: EquivalenciaRequest):
         if request.criterio not in ["dv", "fin"]:
             raise ValueError(f"Critério '{request.criterio}' inválido. Use 'dv' ou 'fin'")
         
+        # Validação: LFT não suporta equivalência por DV01, apenas por financeiro
+        if request.criterio == "dv" and (request.titulo1.upper() == "LFT" or request.titulo2.upper() == "LFT"):
+            raise ValueError("LFT não suporta equivalência por DV01. Use critério 'fin' (financeiro) para LFT.")
+        
         # Preparar parâmetros
         kwargs = {
             "titulo1": request.titulo1,

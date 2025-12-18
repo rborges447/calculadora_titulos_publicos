@@ -54,10 +54,10 @@ def criar_lft(request: LFTRequest):
             quantidade=titulo.quantidade,
             financeiro=titulo.financeiro,
             pu_d0=titulo.pu_d0,
-            pu_termo=getattr(titulo, "pu_termo", None),
-            pu_carregado=getattr(titulo, "pu_carregado", None),
-            cotacao=getattr(titulo, "cotacap", None),  # LFT usa propriedade 'cotacap'
-            taxa_anbima=getattr(titulo, "taxa_anbima", None),
+            pu_termo=titulo.pu_termo,  # pu_termo sempre está disponível após cálculo
+            pu_carregado=titulo.pu_carregado if titulo.pu_carregado is not None else None,
+            cotacao=titulo.cotacap if hasattr(titulo, 'cotacap') and titulo.cotacap is not None else None,
+            taxa_anbima=titulo.taxa_anbima if hasattr(titulo, 'taxa_anbima') else None,
         )
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))

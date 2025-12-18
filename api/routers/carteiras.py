@@ -223,7 +223,7 @@ def atualizar_taxa_carteira(carteira_id: str, request: CarteiraUpdateTaxaRequest
             raise HTTPException(status_code=404, detail="Carteira não encontrada")
         
         tipo_carteira = _carteiras[carteira_id]["tipo"]
-        if tipo_carteira not in ["ltn", "ntnb", "ntnf"]:
+        if tipo_carteira not in ["ltn", "lft", "ntnb", "ntnf"]:
             raise HTTPException(status_code=400, detail=f"Carteira do tipo {tipo_carteira.upper()} não suporta atualização de taxa")
         
         carteira = _carteiras[carteira_id]["carteira"]

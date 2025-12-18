@@ -47,6 +47,11 @@ def equivalencia(titulo1: str, venc1: str,
     if titulo2 not in mapa_titulos:
         raise KeyError(f"Tipo de título '{titulo2}' não reconhecido. Tipos disponíveis: {list(mapa_titulos.keys())}")
 
+    # Validação: LFT não suporta equivalência por DV01
+    if criterio == "dv":
+        if titulo1 == "LFT" or titulo2 == "LFT":
+            raise ValueError("LFT não suporta equivalência por DV01. Use critério 'fin' (financeiro) para LFT.")
+
     # Instancia as classes correspondentes
     titulo_1 = mapa_titulos[titulo1](data_vencimento_titulo=venc1)
     titulo_2 = mapa_titulos[titulo2](data_vencimento_titulo=venc2)
@@ -56,21 +61,32 @@ def equivalencia(titulo1: str, venc1: str,
         titulo_1.taxa = tx1
     if tx2 is not None:
         titulo_2.taxa = tx2
-    '''
+    
     # Define quantidade do primeiro título
     if qtd1 is not None:
         titulo_1.quantidade = qtd1
     else:
         raise ValueError("Parâmetro 'qtd1' é obrigatório")
-    '''
     
     # Calcula equivalência baseada no critério
     if criterio == "dv":
+        # Validação adicional após instanciação (caso algum título tenha sido criado incorretamente)
+        if isinstance(titulo_1, LFT) or isinstance(titulo_2, LFT):
+            raise ValueError("LFT não suporta equivalência por DV01. Use critério 'fin' (financeiro) para LFT.")
         if titulo_1.dv01 is None or titulo_2.dv01 is None:
             raise ValueError("DV01 não disponível para um dos títulos")
         eq = titulo_1.dv01 / titulo_2.dv01 * qtd1
     elif criterio == "fin":
-        eq = titulo_1.financeiro / titulo_2.financeiro * qtd1
+        # Calcula financeiro do primeiro título (já tem quantidade definida)
+        financeiro_1 = titulo_1.financeiro
+        
+        # Calcula quantidade equivalente do segundo título
+        # Para isso, precisamos calcular quanto do título 2 equivale ao financeiro do título 1
+        # financeiro_1 = quantidade_2 * pu_termo_2
+        # quantidade_2 = financeiro_1 / pu_termo_2
+        titulo_2.quantidade = 1  # Quantidade unitária para obter PU
+        pu_termo_2 = titulo_2.pu_termo if hasattr(titulo_2, 'pu_termo') else titulo_2.pu_d0
+        eq = financeiro_1 / pu_termo_2
     else:
         raise ValueError(f"Critério '{criterio}' não reconhecido. Use 'dv' ou 'fin'")
 

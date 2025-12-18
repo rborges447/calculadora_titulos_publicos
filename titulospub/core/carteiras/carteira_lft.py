@@ -90,6 +90,32 @@ class CarteiraLFT:
         
         self._titulos[vencimento].quantidade = quantidade
     
+    def atualizar_taxa(self, vencimento: str, nova_taxa: float):
+        """
+        Atualiza a taxa de um título específico.
+        
+        Args:
+            vencimento: Data de vencimento (YYYY-MM-DD)
+            nova_taxa: Nova taxa de juros (%)
+        """
+        if vencimento not in self._titulos:
+            raise ValueError(f"Vencimento {vencimento} não encontrado na carteira")
+        
+        # Cria novo título com nova taxa mantendo quantidade
+        titulo_antigo = self._titulos[vencimento]
+        quantidade_atual = titulo_antigo.quantidade
+        
+        novo_titulo = LFT(
+            data_vencimento_titulo=vencimento,
+            data_base=self._data_base,
+            dias_liquidacao=self._dias_liquidacao,
+            taxa=nova_taxa,
+            quantidade=quantidade_atual,
+            variaveis_mercado=self._vm,
+        )
+        
+        self._titulos[vencimento] = novo_titulo
+    
     def obter_titulo(self, vencimento: str):
         """
         Obtém um título específico.
@@ -114,6 +140,8 @@ class CarteiraLFT:
         for vencimento, titulo in sorted(self._titulos.items()):
             dados.append({
                 "vencimento": vencimento,
+                "taxa_anbima": titulo.taxa_anbima if hasattr(titulo, 'taxa_anbima') else None,
+                "taxa": titulo.taxa if hasattr(titulo, 'taxa') else None,
                 "pu_termo": titulo.pu_termo if titulo.pu_termo else None,
                 "pu_d0": titulo.pu_d0 if titulo.pu_d0 else None,
                 "quantidade": titulo.quantidade,
