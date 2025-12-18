@@ -272,6 +272,16 @@ class NTNF:
     def taxa_anbima(self):
         """Taxa ANBIMA do título."""
         return self._anbima
+    
+    @property
+    def ajuste_di(self):
+        """Ajuste DI do título."""
+        return self._ajuste_di
+    
+    @property
+    def premio_anbima(self):
+        """Prêmio ANBIMA em pontos base."""
+        return self._premio_anbima
 
     # ==================== MÉTODOS DE CÁLCULO ====================
     

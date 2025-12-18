@@ -126,9 +126,13 @@ class CarteiraNTNB:
         for vencimento, titulo in sorted(self._titulos.items()):
             dados.append({
                 "vencimento": vencimento,
+                "taxa_anbima": getattr(titulo, "taxa_anbima", None),
                 "taxa": titulo.taxa if titulo.taxa else None,
                 "pu_termo": titulo.pu_termo if titulo.pu_termo else None,
                 "pu_d0": titulo.pu_d0 if titulo.pu_d0 else None,
+                "carrego_bps": getattr(titulo, "carrego_bps", None),
+                "premio_anbima_dap": getattr(titulo, "premio_anbima_dap", None),
+                "hedge_dap": getattr(titulo, "hedge_dap", None),
                 "quantidade": titulo.quantidade,
                 "financeiro": titulo.financeiro if titulo.financeiro else None,
                 "dv01": titulo.dv01 if titulo.dv01 else None,

@@ -580,9 +580,15 @@ class CarteiraUpdateQuantidadeRequest(BaseModel):
 class TituloCarteiraData(BaseModel):
     """Modelo para dados de um título na carteira"""
     vencimento: str = Field(..., description="Data de vencimento")
+    taxa_anbima: Optional[float] = Field(None, description="Taxa ANBIMA (%)")
     taxa: Optional[float] = Field(None, description="Taxa de juros (%)")
     pu_termo: Optional[float] = Field(None, description="Preço unitário a termo")
     pu_d0: Optional[float] = Field(None, description="Preço unitário à vista")
+    carrego_bps: Optional[float] = Field(None, description="Carregamento em pontos base")
+    premio_anbima_dap: Optional[float] = Field(None, description="Prêmio ANBIMA DAP")
+    hedge_dap: Optional[int] = Field(None, description="Hedge DAP")
+    ajuste_di: Optional[float] = Field(None, description="Ajuste DI (%)")
+    premio_anbima: Optional[float] = Field(None, description="Prêmio ANBIMA (pontos base)")
     quantidade: float = Field(..., description="Quantidade de títulos")
     financeiro: Optional[float] = Field(None, description="Valor financeiro (R$)")
     dv01: Optional[float] = Field(None, description="DV01")

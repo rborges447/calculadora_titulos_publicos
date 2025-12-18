@@ -81,12 +81,13 @@ def backup_bmf():
                 df["DATA_VENCIMENTO"] = df["VENCTO"].astype(str).apply(
                     lambda x: f"20{x[1:]}-{nomes.get(x[0], x[0])}-01"
             )
-                df[nome] = nome + str(1) + df["VENCTO"]
+                df[nome] = nome + str(1) + df["VENCTO"]  # DI usa formato DI1 + código
             else:
+                # DAP usa formato DAP + código (sem "1")
                 df["DATA_VENCIMENTO"] = df["VENCTO"].astype(str).apply(
                     lambda x: f"20{x[1:]}-{nomes.get(x[0], x[0])}-15"
             )
-                df[nome] = nome + str(1) + df["VENCTO"]
+                df[nome] = nome + df["VENCTO"]  # DAP sem "1"
 
             df["DATA_VENCIMENTO"] = pd.to_datetime(df["DATA_VENCIMENTO"])
 

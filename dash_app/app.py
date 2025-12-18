@@ -74,10 +74,16 @@ def render_page(pathname: str):
     return home.layout()
 
 
+# Exportar server para uso com gunicorn em produção
+server = app.server
+
 if __name__ == "__main__":
     # Para desenvolvimento, use: DEBUG=True python -m dash_app.app
     # Para produção, use: python run_dash_app.py (debug=False por padrão)
     import os
     debug_mode = os.getenv("DEBUG", "False").lower() == "true"
-    app.run(debug=debug_mode, port=8050, host="127.0.0.1")
+    # Usar 0.0.0.0 para permitir acesso pela rede interna
+    host = os.getenv("DASH_HOST", "0.0.0.0")
+    port = int(os.getenv("DASH_PORT", "8050"))
+    app.run(debug=debug_mode, port=port, host=host)
 

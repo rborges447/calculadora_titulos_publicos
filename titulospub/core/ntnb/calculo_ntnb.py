@@ -29,8 +29,10 @@ def dias_uteis_duration(data_liquidacao, data_venc_duration, feriados=None):
     feriados_np = np.array([np.datetime64(pd.to_datetime(f), 'D') for f in feriados])
     return np.busday_count(data_inicio_np, data_fim_np, holidays=feriados_np)
 
+'''
 def calculo_dv01_ntnb(duration, pu, taxa):
     return (duration * (0.01 / 100) / (1 + taxa / 100 / 2)) * pu
+'''
 
 def cauculo_pu_carregado(data, data_liquidacao, pu, cdi=None, feriados=None):
     feriados = _carregar_feriados_se_necessario(feriados)
@@ -68,6 +70,23 @@ def calculo_taxa_pu_ntnb(vna_ajustado, cotacao):
     truncar = lambda valor, casas_decimais: trunc(valor * 10 ** casas_decimais) / 10 ** casas_decimais
     return truncar(vna_ajustado * (cotacao / 100), 6)
 
+def calculo_dv01_ntnb(data_vencimento, data_liquidacao, taxa, vna_ajustado, feriados=None):
+    feriados = _carregar_feriados_se_necessario(feriados)
+    cotacao_1 = cash_flow_ntnb(data_vencimento=data_vencimento, 
+                                data_liquidacao=data_liquidacao, 
+                                feriados=feriados, 
+                                taxa=taxa)["cotacao"]
+   
+    cotacao_2 = cash_flow_ntnb(data_vencimento=data_vencimento, 
+    data_liquidacao=data_liquidacao, 
+    feriados=feriados, 
+    taxa=taxa + 0.01)["cotacao"]
+
+    pu_1 = calculo_taxa_pu_ntnb(vna_ajustado=vna_ajustado, cotacao=cotacao_1)
+    pu_2 = calculo_taxa_pu_ntnb(vna_ajustado=vna_ajustado, cotacao=cotacao_2)
+
+    return abs(pu_1 - pu_2)   
+
 def calculo_ntnb(data, data_liquidacao, data_vencimento, taxa, cdi=None, ipca_dict=None, feriados=None):
     feriados = _carregar_feriados_se_necessario(feriados)
     ipca_dict = _carrecar_ipca_dict_se_necessario(ipca_dict)
@@ -92,7 +111,8 @@ def calculo_ntnb(data, data_liquidacao, data_vencimento, taxa, cdi=None, ipca_di
     dt_venc_duration = data_vencimento_duration(data_liquidacao=data_liquidacao, duration=duration)
     duration_dias = dias_uteis_duration(data_liquidacao=data_liquidacao, data_venc_duration=dt_venc_duration, feriados=feriados)
 
-    dv01 = calculo_dv01_ntnb(duration=duration, pu=pu_termo, taxa=taxa)
+    #dv01 = calculo_dv01_ntnb(duration=duration, pu=pu_termo, taxa=taxa)
+    dv01 = calculo_dv01_ntnb(data_vencimento=data_vencimento, data_liquidacao=data_liquidacao, taxa=taxa, vna_ajustado=vna_ajustado_termo, feriados=feriados)
 
     pu_carregado = cauculo_pu_carregado(data=data, data_liquidacao=data_liquidacao, pu=pu_d0, cdi=cdi, feriados=feriados)
     pu_ajustado = calculo_pu_ajustado(data=data, data_liquidacao=data_liquidacao, taxa=taxa, pu=pu_d0, ipca_dict=ipca_dict, feriados=feriados)

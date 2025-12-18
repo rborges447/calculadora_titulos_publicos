@@ -26,7 +26,7 @@ def criar_ltn(request: LTNRequest):
         # Criar instância do título
         kwargs = {
             "data_vencimento_titulo": request.data_vencimento,
-            "dias_liquidacao": request.dias_liquidacao or 1,
+            "dias_liquidacao": request.dias_liquidacao if request.dias_liquidacao is not None else 1,
         }
         
         if request.data_base:

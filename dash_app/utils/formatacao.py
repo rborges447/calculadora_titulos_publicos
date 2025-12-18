@@ -64,3 +64,20 @@ def formatar_taxa_brasileira(valor: float) -> str:
 def formatar_pu_brasileiro(valor: float) -> str:
     """Formata PU com 6 casas decimais no padrão brasileiro"""
     return formatar_numero_brasileiro(valor, casas_decimais=6)
+
+
+def formatar_bps(valor: float) -> str:
+    """Formata pontos base com 2 casas decimais no padrão brasileiro"""
+    return formatar_numero_brasileiro(valor, casas_decimais=2)
+
+
+def formatar_dv01(valor: float) -> str:
+    """Formata DV01 com 2 casas decimais no padrão brasileiro"""
+    return formatar_numero_brasileiro(valor, casas_decimais=2)
+
+
+def formatar_inteiro(valor: int) -> str:
+    """Formata número inteiro no padrão brasileiro"""
+    if valor is None:
+        return ""
+    return formatar_numero_brasileiro(float(valor), casas_decimais=0)

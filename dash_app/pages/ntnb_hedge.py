@@ -182,7 +182,7 @@ def calcular_hedge(n_clicks, data_venc, codigo_di, taxa, dias, quantidade, finan
     payload = {
         "data_vencimento": data_venc,
         "codigo_di": codigo_di,
-        "dias_liquidacao": int(dias) if dias else 1,
+        "dias_liquidacao": int(dias) if dias is not None else 1,
     }
     if taxa:
         # Converter do formato brasileiro se necessário

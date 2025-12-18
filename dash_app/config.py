@@ -2,8 +2,12 @@
 Configurações globais do app Dash.
 """
 
-# URL da API FastAPI
-API_URL = "http://localhost:8000"
+import os
+
+# URL da API FastAPI - configurável via variável de ambiente
+# Default: localhost para desenvolvimento local
+# Para rede: export API_BASE_URL=http://10.182.129.1:8000
+API_URL = os.getenv("API_BASE_URL", "http://127.0.0.1:8000")
 
 # Metadados do app
 APP_TITLE = "Calculadora de Títulos Públicos"

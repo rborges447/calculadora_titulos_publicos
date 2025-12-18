@@ -56,13 +56,14 @@ def equivalencia(titulo1: str, venc1: str,
         titulo_1.taxa = tx1
     if tx2 is not None:
         titulo_2.taxa = tx2
-    
+    '''
     # Define quantidade do primeiro título
     if qtd1 is not None:
         titulo_1.quantidade = qtd1
     else:
         raise ValueError("Parâmetro 'qtd1' é obrigatório")
-
+    '''
+    
     # Calcula equivalência baseada no critério
     if criterio == "dv":
         if titulo_1.dv01 is None or titulo_2.dv01 is None:

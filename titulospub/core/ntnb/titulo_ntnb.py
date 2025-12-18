@@ -1,4 +1,5 @@
 import pandas as pd
+from typing import Optional
 
 from titulospub.core.auxilio import vencimento_codigo_bmf
 from titulospub.core.dap.calculo_dap import calculo_financeiro_dap, dv01_dap
@@ -108,6 +109,8 @@ class NTNB:
                 self._taxa = float(self._anbima)
             else:
                 # Taxa = ajuste DAP + prêmio
+                if self._ajuste_dap is None:
+                    raise ValueError(f"Não é possível calcular taxa a partir de prêmio DAP: ajuste DAP não disponível para {self._dap_ref}.")
                 self._taxa = float(self._ajuste_dap + self._premio / 100)
         else:
             self._taxa = float(self._taxa)
@@ -121,9 +124,13 @@ class NTNB:
         curva_dap = self._vm.get_bmf()["DAP"]
         serie_adj = curva_dap.loc[curva_dap["DAP"] == self._dap_ref, "ADJ"]
         if serie_adj.empty:
-            raise ValueError(f"Ajuste DAP não encontrado para {self._dap_ref}.")
-        self._ajuste_dap = float(serie_adj.iloc[0])
-        self._premio_anbima_dap = (self._anbima - self._ajuste_dap) * 100
+            # DAP não disponível para este vencimento - define como None
+            print(f"[WARN] Ajuste DAP não encontrado para {self._dap_ref}. Título será criado sem dados de DAP.")
+            self._ajuste_dap = None
+            self._premio_anbima_dap = None
+        else:
+            self._ajuste_dap = float(serie_adj.iloc[0])
+            self._premio_anbima_dap = (self._anbima - self._ajuste_dap) * 100
     
     def _inicializar_atributos_derivados(self):
         """Inicializa atributos que serão calculados posteriormente."""
@@ -280,8 +287,10 @@ class NTNB:
         # Calcula o hedge DAP
         self._hedge_dap = self._calcular_hedge_dap()
     
-    def _calcular_hedge_dap(self) -> int:
+    def _calcular_hedge_dap(self) -> Optional[int]:
         """Calcula o hedge DAP para o título NTNB."""
+        if self._ajuste_dap is None:
+            return None
         dv_dap = dv01_dap(
             taxa=self._ajuste_dap,
             codigo=self._dap_ref,
@@ -298,6 +307,8 @@ class NTNB:
     def _atualizar_taxa_premio_dap(self):
         """Atualiza a taxa baseada em prêmio quando está definido."""
         if self._premio is not None:
+            if self._ajuste_dap is None:
+                raise ValueError(f"Não é possível calcular taxa a partir de prêmio DAP: ajuste DAP não disponível para {self._dap_ref}.")
             self._taxa = float(self._ajuste_dap + self._premio / 100)
     
     def _ajustar_valores_para_quantidade(self, nova_quantidade):

@@ -1,8 +1,13 @@
 import os
+import time
 import pandas as pd
 
 def definir_caminho_adj_bmf(data):
 
+    """
+    Versão modificada que busca o arquivo mais recente por data de modificação,
+    não apenas pelo número no nome do arquivo.
+    """
     try:
         # Convertendo para string formatada
         dia = f"{data.day:02}"
@@ -33,30 +38,31 @@ def definir_caminho_adj_bmf(data):
             print(f"[AVISO] Nenhum arquivo encontrado com prefixo {prefixo} na pasta {pasta}")
             return None
 
-        # Extrai números finais
-        numeros = []
+        # Busca o arquivo mais recente por data de modificação
+        arquivos_com_data = []
         for arq in arquivos_filtrados:
-            try:
-                num_str = arq.replace(prefixo, "").replace(".csv", "")
-                num = int(num_str)
-                numeros.append((num, arq))
-            except ValueError:
-                continue  # Ignora se não for número válido
+            caminho_completo = os.path.join(pasta, arq)
+            if os.path.exists(caminho_completo):
+                mtime = os.path.getmtime(caminho_completo)
+                arquivos_com_data.append((mtime, arq, caminho_completo))
 
-        if not numeros:
-            print(f"[AVISO] Nenhum arquivo com número válido encontrado na pasta {pasta}")
+        if not arquivos_com_data:
+            print(f"[AVISO] Nenhum arquivo válido encontrado na pasta {pasta}")
             return None
 
-        # Pega maior número
-        maior_arquivo = max(numeros, key=lambda x: x[0])[1]
+        # Pega o arquivo com maior data de modificação (mais recente)
+        arquivo_mais_recente = max(arquivos_com_data, key=lambda x: x[0])
+        
+        print(f"[INFO] Encontrados {len(arquivos_filtrados)} arquivos com prefixo {prefixo}")
+        print(f"[INFO] Arquivo mais recente selecionado: {arquivo_mais_recente[1]}")
+        print(f"[INFO] Data de modificação: {time.ctime(arquivo_mais_recente[0])}")
 
-        # Monta caminho completo
-        caminho_final = os.path.join(pasta, maior_arquivo)
-
-        return caminho_final
+        return arquivo_mais_recente[2]  # Retorna caminho completo
     
     except Exception as e:
         print(f"[AVISO] Erro inesperado ao definir caminho: {e}")
+        import traceback
+        traceback.print_exc()
         return None
 
 import pandas as pd
