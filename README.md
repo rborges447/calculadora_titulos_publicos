@@ -22,7 +22,6 @@ calculadora_titulos_publicos/
 │   ├── pages/            # Páginas da interface
 │   ├── components/       # Componentes reutilizáveis
 │   └── utils/             # Utilitários do frontend
-├── tests/                 # Testes automatizados
 ├── run_api.py            # Script para iniciar API
 └── run_dash_app.py       # Script para iniciar Dash
 ```
@@ -107,18 +106,6 @@ eq = equivalencia("LTN", "2025-01-01", "NTNB", "2035-05-15",
                   qtd1=10000, criterio="dv")
 ```
 
-## Testes
-
-```bash
-# Instalar dependências de teste
-pip install pytest pytest-cov
-
-# Executar todos os testes
-pytest tests/ -v
-
-# Executar com cobertura
-pytest tests/ --cov=titulospub --cov=api --cov=dash_app
-```
 
 ## Desenvolvido com
 
