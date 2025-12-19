@@ -90,6 +90,8 @@ A interface abrirá automaticamente em: http://127.0.0.1:8050
 - `POST /equivalencia` - Calcular equivalência entre títulos
 - `GET /vencimentos/{tipo}` - Listar vencimentos disponíveis
 - `GET /health` - Health check da API
+- `GET /ready` - Readiness check (para load balancers)
+- `GET /live` - Liveness check (para orquestradores)
 
 ## Uso do Pacote Python
 
@@ -107,6 +109,20 @@ eq = equivalencia("LTN", "2025-01-01", "NTNB", "2035-05-15",
 ```
 
 
+## Testes
+
+O projeto inclui testes de regressão para garantir que mudanças não alterem comportamento:
+
+```bash
+# Executar todos os testes
+pytest tests/regression/
+
+# Executar com verbose
+pytest tests/regression/ -v
+```
+
+**Cobertura:** 15 testes cobrindo endpoints principais (LTN, LFT, NTNB, NTNF, equivalência, vencimentos)
+
 ## Desenvolvido com
 
 - **FastAPI** - Framework web moderno para API REST
@@ -114,6 +130,19 @@ eq = equivalencia("LTN", "2025-01-01", "NTNB", "2035-05-15",
 - **Python 3.8+** - Linguagem de programação
 - **Pydantic** - Validação de dados
 - **Pandas** - Manipulação de dados financeiros
+- **pytest** - Framework de testes
+
+## Documentação Adicional
+
+Para mais detalhes sobre o sistema, consulte:
+- `DOCS_CODEBASE.md` - Documentação completa do código e arquitetura
+- `explain/` - Documentação explicativa detalhada:
+  - `00_project_summary.md` - Resumo geral do projeto
+  - `01_modules_map.md` - Mapa de módulos
+  - `02_execution_flow.md` - Fluxos de execução
+  - `03_functions_index.md` - Índice de funções e classes
+  - `04_assumptions_and_risks.md` - Suposições e riscos
+- `RUNBOOK.md` - Guia de operação e deploy
 
 
 

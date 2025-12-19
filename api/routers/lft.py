@@ -3,15 +3,17 @@ Endpoints para título LFT (Letra Financeira do Tesouro)
 """
 from fastapi import APIRouter, HTTPException
 
+from api.logging_config import get_logger
 from api.models import LFTRequest, LFTResponse
 from api.utils import serialize_datetime
 from titulospub import LFT
 
 router = APIRouter(prefix="/titulos/lft", tags=["LFT"])
+logger = get_logger("api.routers.lft")
 
 
 @router.post("", response_model=LFTResponse, summary="Criar título LFT")
-def criar_lft(request: LFTRequest):
+def criar_lft(request: LFTRequest) -> LFTResponse:
     """
     Cria e calcula um título LFT (Letra Financeira do Tesouro)
     
@@ -60,8 +62,10 @@ def criar_lft(request: LFTRequest):
             taxa_anbima=titulo.taxa_anbima if hasattr(titulo, 'taxa_anbima') else None,
         )
     except ValueError as e:
+        logger.warning(f"Erro de validação ao criar LFT: {e}")
         raise HTTPException(status_code=422, detail=str(e))
     except Exception as e:
+        logger.error(f"Erro interno ao criar LFT: {e}", exc_info=True)
         import traceback
         traceback.print_exc()
         raise HTTPException(

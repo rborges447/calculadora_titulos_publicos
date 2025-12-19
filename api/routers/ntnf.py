@@ -3,15 +3,17 @@ Endpoints para título NTNF (Nota do Tesouro Nacional - Série F)
 """
 from fastapi import APIRouter, HTTPException
 
+from api.logging_config import get_logger
 from api.models import NTNFRequest, NTNFResponse
 from api.utils import serialize_datetime
 from titulospub import NTNF
 
 router = APIRouter(prefix="/titulos/ntnf", tags=["NTNF"])
+logger = get_logger("api.routers.ntnf")
 
 
 @router.post("", response_model=NTNFResponse, summary="Criar título NTNF")
-def criar_ntnf(request: NTNFRequest):
+def criar_ntnf(request: NTNFRequest) -> NTNFResponse:
     """
     Cria e calcula um título NTNF (Nota do Tesouro Nacional - Série F)
     
@@ -73,8 +75,10 @@ def criar_ntnf(request: NTNFRequest):
             taxa_anbima=getattr(titulo, "taxa_anbima", None),
         )
     except ValueError as e:
+        logger.warning(f"Erro de validação ao criar NTNF: {e}")
         raise HTTPException(status_code=422, detail=str(e))
     except Exception as e:
+        logger.error(f"Erro interno ao criar NTNF: {e}", exc_info=True)
         import traceback
         traceback.print_exc()
         raise HTTPException(

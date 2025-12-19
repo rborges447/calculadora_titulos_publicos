@@ -8,8 +8,13 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from titulospub.dados.orquestrador import VariaveisMercado
 
+from .logging_config import get_logger
+from .middleware.metrics import MetricsMiddleware
 from .routers import carteiras, equivalencia, lft, ltn, ntnb, ntnf, vencimentos
 from .utils import marcar_atualizado, precisa_atualizar_mercado
+
+# Logger para este módulo
+logger = get_logger("api.main")
 
 
 @asynccontextmanager
@@ -21,17 +26,21 @@ async def lifespan(app: FastAPI):
     # Startup: Verificar e atualizar variáveis de mercado se necessário
     if precisa_atualizar_mercado():
         print("🔄 Atualizando variáveis de mercado (primeira vez hoje)...")
+        logger.info("Atualizando variáveis de mercado (primeira vez hoje)")
         try:
             vm = VariaveisMercado()
             # Usar o método atualizar_tudo() que já faz tudo automaticamente
             vm.atualizar_tudo(verbose=True)
             marcar_atualizado()
             print("✅ Variáveis de mercado atualizadas com sucesso!")
+            logger.info("Variáveis de mercado atualizadas com sucesso")
         except Exception as e:
             print(f"⚠️ Erro ao atualizar variáveis de mercado: {e}")
             print("   Usando dados em cache...")
+            logger.warning(f"Erro ao atualizar variáveis de mercado: {e}, usando cache")
     else:
         print("ℹ️ Variáveis de mercado já atualizadas hoje. Usando dados em cache.")
+        logger.info("Variáveis de mercado já atualizadas hoje, usando cache")
     
     yield
     
@@ -47,6 +56,9 @@ app = FastAPI(
     redoc_url="/redoc",
     lifespan=lifespan
 )
+
+# Adicionar middleware de métricas (deve vir antes do CORS para capturar todas as requisições)
+app.add_middleware(MetricsMiddleware)
 
 # Configurar CORS para permitir requisições do frontend
 app.add_middleware(
@@ -94,11 +106,63 @@ def root():
 
 @app.get("/health", tags=["Health"])
 def health_check():
-    """Endpoint de health check"""
+    """
+    Endpoint de health check básico.
+    
+    Retorna status da API e última atualização de mercado.
+    """
     from .utils import get_ultima_atualizacao
+    
     return {
         "status": "healthy",
         "ultima_atualizacao_mercado": get_ultima_atualizacao()
+    }
+
+
+@app.get("/ready", tags=["Health"])
+def readiness_check():
+    """
+    Endpoint de readiness check.
+    
+    Verifica se a API está pronta para receber requisições.
+    Útil para load balancers e orquestradores (Kubernetes, etc).
+    
+    Retorna:
+        - ready: True se API está pronta
+        - workers: Número de workers (sempre 1 atualmente devido a limitação de carteiras)
+        - cache_status: Status do cache (ok se disponível)
+    """
+    from pathlib import Path
+    from .utils import get_ultima_atualizacao
+    
+    # Verificar se cache está disponível (arquivo de controle existe)
+    cache_ok = Path("api/.ultima_atualizacao.json").exists()
+    
+    return {
+        "ready": True,  # API sempre está pronta (usa cache/backup se necessário)
+        "workers": 1,  # Atualmente limitado a 1 worker devido a carteiras em memória
+        "cache_status": "ok" if cache_ok else "unavailable",
+        "ultima_atualizacao_mercado": get_ultima_atualizacao()
+    }
+
+
+@app.get("/live", tags=["Health"])
+def liveness_check():
+    """
+    Endpoint de liveness check.
+    
+    Verifica se o processo está vivo.
+    Útil para orquestradores (Kubernetes, etc) detectarem processos travados.
+    
+    Retorna:
+        - alive: True se processo está vivo
+        - timestamp: Timestamp atual em ISO format
+    """
+    from datetime import datetime
+    
+    return {
+        "alive": True,
+        "timestamp": datetime.now().isoformat()
     }
 
 
@@ -113,15 +177,18 @@ def forcar_atualizacao_mercado():
     
     try:
         print("🔄 Forçando atualização de variáveis de mercado...")
+        logger.info("Forçando atualização de variáveis de mercado (endpoint admin)")
         vm = VariaveisMercado()
         vm.atualizar_tudo(verbose=True)
         marcar_atualizado()
+        logger.info("Variáveis de mercado atualizadas com sucesso (endpoint admin)")
         return {
             "status": "success",
             "message": "Variáveis de mercado atualizadas com sucesso",
             "data": get_ultima_atualizacao()
         }
     except Exception as e:
+        logger.error(f"Erro ao atualizar variáveis de mercado (endpoint admin): {e}")
         return {
             "status": "error",
             "message": f"Erro ao atualizar: {str(e)}"

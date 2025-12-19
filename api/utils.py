@@ -1,9 +1,14 @@
 """
-Utilitários para a API
+Utilitários para a API.
+
+Este módulo contém funções auxiliares para:
+- Controle de atualização de mercado (arquivo .ultima_atualizacao.json)
+- Serialização de datas para formato ISO
 """
 import json
 from datetime import date, datetime
 from pathlib import Path
+from typing import Optional, Union
 
 import pandas as pd
 
@@ -42,9 +47,16 @@ def precisa_atualizar_mercado() -> bool:
         return True
 
 
-def marcar_atualizado():
+def marcar_atualizado() -> None:
     """
-    Marca que as variáveis de mercado foram atualizadas hoje
+    Marca que as variáveis de mercado foram atualizadas hoje.
+    
+    Cria ou atualiza o arquivo de controle (.ultima_atualizacao.json)
+    com a data atual e timestamp.
+    
+    Side effects:
+        - Cria/atualiza arquivo CONTROLE_ATUALIZACAO_FILE
+        - Imprime erro em caso de falha (mantido para compatibilidade)
     """
     try:
         # Criar diretório se não existir
@@ -59,6 +71,7 @@ def marcar_atualizado():
         with open(CONTROLE_ATUALIZACAO_FILE, 'w', encoding='utf-8') as f:
             json.dump(dados, f, indent=2)
     except Exception as e:
+        # Manter print para compatibilidade (não alterar comportamento)
         print(f"Erro ao marcar atualização: {e}")
 
 
@@ -80,15 +93,17 @@ def get_ultima_atualizacao() -> str:
         return "Nunca"
 
 
-def serialize_datetime(dt) -> str:
+def serialize_datetime(
+    dt: Optional[Union[datetime, pd.Timestamp, str]]
+) -> Optional[str]:
     """
     Serializa datetime para string ISO (YYYY-MM-DD).
     
     Args:
-        dt: Objeto datetime, pd.Timestamp ou None
+        dt: Objeto datetime, pd.Timestamp, string ou None
     
     Returns:
-        str: Data formatada ou None
+        str: Data formatada no formato YYYY-MM-DD, ou None se dt for None
     """
     if dt is None:
         return None

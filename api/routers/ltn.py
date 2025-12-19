@@ -3,15 +3,17 @@ Endpoints para título LTN (Letra do Tesouro Nacional)
 """
 from fastapi import APIRouter, HTTPException
 
+from api.logging_config import get_logger
 from api.models import LTNRequest, LTNResponse
 from api.utils import serialize_datetime
 from titulospub import LTN
 
 router = APIRouter(prefix="/titulos/ltn", tags=["LTN"])
+logger = get_logger("api.routers.ltn")
 
 
 @router.post("", response_model=LTNResponse, summary="Criar título LTN")
-def criar_ltn(request: LTNRequest):
+def criar_ltn(request: LTNRequest) -> LTNResponse:
     """
     Cria e calcula um título LTN (Letra do Tesouro Nacional)
     
@@ -73,8 +75,10 @@ def criar_ltn(request: LTNRequest):
             taxa_anbima=getattr(titulo, "taxa_anbima", None),
         )
     except ValueError as e:
+        logger.warning(f"Erro de validação ao criar LTN: {e}")
         raise HTTPException(status_code=422, detail=str(e))
     except Exception as e:
+        logger.error(f"Erro interno ao criar LTN: {e}", exc_info=True)
         import traceback
         traceback.print_exc()
         raise HTTPException(

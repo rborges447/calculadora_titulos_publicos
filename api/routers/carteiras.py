@@ -13,6 +13,8 @@ from typing import Dict, Optional
 
 from fastapi import APIRouter, HTTPException
 
+from api.logging_config import get_logger
+
 from api.models import (
     CarteiraCreateRequest,
     CarteiraResponse,
@@ -30,6 +32,7 @@ from titulospub.core.carteiras import (
 )
 
 router = APIRouter(prefix="/carteiras", tags=["Carteiras"])
+logger = get_logger("api.routers.carteiras")
 
 # Armazena carteiras em memória com lock para thread-safety
 # LIMITAÇÃO: Não funciona com múltiplos workers (cada worker tem sua própria memória)
@@ -39,18 +42,36 @@ _carteiras_lock = threading.Lock()
 
 
 def _criar_id_carteira(tipo: str) -> str:
-    """Cria um ID único para a carteira"""
+    """
+    Cria um ID único para a carteira.
+    
+    Args:
+        tipo: Tipo da carteira (ltn, lft, ntnb, ntnf)
+    
+    Returns:
+        str: ID único no formato "{tipo}_{uuid_hex_8_chars}"
+    """
     return f"{tipo}_{uuid.uuid4().hex[:8]}"
 
 
 # ==================== ROTAS DE CRIAÇÃO ====================
 
 @router.post("/ltn", response_model=CarteiraResponse, summary="Criar carteira LTN")
-def criar_carteira_ltn(request: CarteiraCreateRequest):
+def criar_carteira_ltn(request: CarteiraCreateRequest) -> CarteiraResponse:
     """
     Cria uma nova carteira LTN com todos os vencimentos disponíveis.
+    
+    Args:
+        request: Dados para criação da carteira (data_base, dias_liquidacao, etc.)
+    
+    Returns:
+        CarteiraResponse: Dados da carteira criada com todos os títulos
+    
+    Raises:
+        HTTPException: Se houver erro na criação (422 para validação, 500 para erro interno)
     """
     try:
+        logger.info("Criando carteira LTN")
         carteira = CarteiraLTN(
             data_base=request.data_base,
             dias_liquidacao=request.dias_liquidacao,
@@ -68,6 +89,8 @@ def criar_carteira_ltn(request: CarteiraCreateRequest):
         dados_tabela = carteira.obter_dados_tabela()
         titulos = [TituloCarteiraData(**dado) for dado in dados_tabela]
         
+        logger.info(f"Carteira LTN criada: {carteira_id}, {len(titulos)} títulos")
+        
         return CarteiraResponse(
             carteira_id=carteira_id,
             tipo="LTN",
@@ -77,8 +100,10 @@ def criar_carteira_ltn(request: CarteiraCreateRequest):
             titulos=titulos,
         )
     except ValueError as e:
+        logger.warning(f"Erro de validação ao criar carteira LTN: {e}")
         raise HTTPException(status_code=422, detail=str(e))
     except Exception as e:
+        logger.error(f"Erro interno: {e}", exc_info=True)
         import traceback
         traceback.print_exc()
         raise HTTPException(
@@ -118,8 +143,10 @@ def criar_carteira_lft(request: CarteiraCreateRequest):
             titulos=titulos,
         )
     except ValueError as e:
+        logger.warning(f"Erro de validação: {e}")
         raise HTTPException(status_code=422, detail=str(e))
     except Exception as e:
+        logger.error(f"Erro interno: {e}", exc_info=True)
         import traceback
         traceback.print_exc()
         raise HTTPException(
@@ -159,8 +186,10 @@ def criar_carteira_ntnb(request: CarteiraCreateRequest):
             titulos=titulos,
         )
     except ValueError as e:
+        logger.warning(f"Erro de validação: {e}")
         raise HTTPException(status_code=422, detail=str(e))
     except Exception as e:
+        logger.error(f"Erro interno: {e}", exc_info=True)
         import traceback
         traceback.print_exc()
         raise HTTPException(
@@ -201,8 +230,10 @@ def criar_carteira_ntnf(request: CarteiraCreateRequest):
             titulos=titulos,
         )
     except ValueError as e:
+        logger.warning(f"Erro de validação: {e}")
         raise HTTPException(status_code=422, detail=str(e))
     except Exception as e:
+        logger.error(f"Erro interno: {e}", exc_info=True)
         import traceback
         traceback.print_exc()
         raise HTTPException(
@@ -320,8 +351,10 @@ def atualizar_dias_liquidacao_carteira(carteira_id: str, request: CarteiraUpdate
             titulos=titulos,
         )
     except ValueError as e:
+        logger.warning(f"Erro de validação: {e}")
         raise HTTPException(status_code=422, detail=str(e))
     except Exception as e:
+        logger.error(f"Erro interno: {e}", exc_info=True)
         import traceback
         traceback.print_exc()
         raise HTTPException(
@@ -357,8 +390,10 @@ def obter_carteira(carteira_id: str):
             titulos=titulos,
         )
     except ValueError as e:
+        logger.warning(f"Erro de validação: {e}")
         raise HTTPException(status_code=422, detail=str(e))
     except Exception as e:
+        logger.error(f"Erro interno: {e}", exc_info=True)
         import traceback
         traceback.print_exc()
         raise HTTPException(

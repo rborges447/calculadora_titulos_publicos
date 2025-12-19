@@ -1,16 +1,18 @@
 """
-Endpoints para cálculo de equivalência entre títulos públicos
+Endpoints para cálculo de equivalência entre títulos públicos.
 """
 from fastapi import APIRouter, HTTPException
 
+from api.logging_config import get_logger
 from api.models import EquivalenciaRequest, EquivalenciaResponse
 from titulospub import equivalencia
 
 router = APIRouter(prefix="/equivalencia", tags=["Equivalência"])
+logger = get_logger("api.routers.equivalencia")
 
 
 @router.post("", response_model=EquivalenciaResponse, summary="Calcular equivalência entre títulos")
-def calcular_equivalencia(request: EquivalenciaRequest):
+def calcular_equivalencia(request: EquivalenciaRequest) -> EquivalenciaResponse:
     """
     Calcula a equivalência entre dois títulos públicos
     
@@ -51,7 +53,13 @@ def calcular_equivalencia(request: EquivalenciaRequest):
             kwargs["tx2"] = request.tx2
         
         # Calcular equivalência
+        logger.info(
+            f"Calculando equivalência: {request.titulo1}({request.venc1}) -> "
+            f"{request.titulo2}({request.venc2}), critério={request.criterio}"
+        )
         equivalencia_calculada = equivalencia(**kwargs)
+        
+        logger.info(f"Equivalência calculada: {equivalencia_calculada}")
         
         # Construir resposta
         return EquivalenciaResponse(
@@ -66,9 +74,11 @@ def calcular_equivalencia(request: EquivalenciaRequest):
     except KeyError as e:
         raise HTTPException(status_code=400, detail=f"Parâmetro inválido: {str(e)}")
     except ValueError as e:
+        logger.warning(f"Erro de validação em equivalência: {e}")
         raise HTTPException(status_code=422, detail=str(e))
     except Exception as e:
         # Log do erro completo para debugging (sem expor ao cliente)
+        logger.error(f"Erro interno ao calcular equivalência: {e}", exc_info=True)
         import traceback
         traceback.print_exc()
         raise HTTPException(

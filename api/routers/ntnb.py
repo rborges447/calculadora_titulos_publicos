@@ -3,15 +3,17 @@ Endpoints para título NTNB (Nota do Tesouro Nacional - Série B)
 """
 from fastapi import APIRouter, HTTPException
 
+from api.logging_config import get_logger
 from api.models import NTNBHedgeDIRequest, NTNBHedgeDIResponse, NTNBRequest, NTNBResponse
 from api.utils import serialize_datetime
 from titulospub import NTNB
 
 router = APIRouter(prefix="/titulos/ntnb", tags=["NTNB"])
+logger = get_logger("api.routers.ntnb")
 
 
 @router.post("", response_model=NTNBResponse, summary="Criar título NTNB")
-def criar_ntnb(request: NTNBRequest):
+def criar_ntnb(request: NTNBRequest) -> NTNBResponse:
     """
     Cria e calcula um título NTNB (Nota do Tesouro Nacional - Série B)
     
@@ -84,8 +86,10 @@ def criar_ntnb(request: NTNBRequest):
             taxa_anbima=getattr(titulo, "taxa_anbima", None),
         )
     except ValueError as e:
+        logger.warning(f"Erro de validação ao criar NTNB: {e}")
         raise HTTPException(status_code=422, detail=str(e))
     except Exception as e:
+        logger.error(f"Erro interno ao criar NTNB: {e}", exc_info=True)
         import traceback
         traceback.print_exc()
         raise HTTPException(
@@ -95,7 +99,7 @@ def criar_ntnb(request: NTNBRequest):
 
 
 @router.post("/hedge-di", response_model=NTNBHedgeDIResponse, summary="Calcular hedge DI para NTNB")
-def calcular_hedge_di_ntnb(request: NTNBHedgeDIRequest):
+def calcular_hedge_di_ntnb(request: NTNBHedgeDIRequest) -> NTNBHedgeDIResponse:
     """
     Calcula o hedge DI para um título NTNB usando um código DI específico
     
@@ -149,8 +153,10 @@ def calcular_hedge_di_ntnb(request: NTNBHedgeDIRequest):
             ajuste_di=ajuste_di,
         )
     except ValueError as e:
+        logger.warning(f"Erro de validação ao calcular hedge DI NTNB: {e}")
         raise HTTPException(status_code=422, detail=str(e))
     except Exception as e:
+        logger.error(f"Erro interno ao calcular hedge DI NTNB: {e}", exc_info=True)
         import traceback
         traceback.print_exc()
         raise HTTPException(
