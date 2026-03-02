@@ -1,151 +1,196 @@
-# Calculadora de Títulos Públicos
+## Calculadora de Títulos Públicos
 
-Sistema completo para cálculo e análise de títulos públicos brasileiros com API FastAPI e interface Dash.
+Sistema profissional para **cálculo e análise de títulos públicos brasileiros** usando:
 
-## Arquitetura do Projeto
+- **Camada de domínio** (`titulospub`) com toda a lógica de cálculo.
+- **API REST** em **FastAPI** (`api`) para acesso programático.
+- **Interface web interativa** em **Dash** (`dash_app`) consumindo apenas a API.
 
-O projeto segue uma arquitetura em camadas bem definida:
+### Arquitetura (3 camadas)
 
-```
+```text
 calculadora_titulos_publicos/
-├── titulospub/            # Camada de Domínio (lógica de negócio)
-│   ├── core/             # Classes de títulos e cálculos
-│   ├── dados/            # Dados de mercado e cache
-│   ├── scraping/         # Coleta de dados externos
-│   └── utils/            # Utilitários
-├── api/                   # Camada de API (FastAPI)
-│   ├── main.py           # Aplicação principal
-│   ├── models.py         # Modelos Pydantic
-│   └── routers/          # Endpoints por tipo de título
-├── dash_app/              # Camada de Frontend (Dash)
-│   ├── app.py            # Aplicação Dash
-│   ├── pages/            # Páginas da interface
-│   ├── components/       # Componentes reutilizáveis
-│   └── utils/             # Utilitários do frontend
-├── run_api.py            # Script para iniciar API
-└── run_dash_app.py       # Script para iniciar Dash
+├── titulospub/              # Domínio: cálculos e dados de mercado
+├── api/                     # API FastAPI (HTTP)
+├── dash_app/                # Frontend Dash (UI)
+├── run_api.py               # Sobe somente a API
+├── run_dash_app.py          # Sobe somente o Dash
+├── run_all_dev.py           # (dev) Sobe API + Dash juntos
+├── requirements.txt         # Dependências
+├── pyproject.toml / setup.py# Empacotamento de `titulospub`
+└── teste_calculadora_titulospub.ipynb  # Notebook de exemplo (opcional)
 ```
 
-**Princípios Arquiteturais:**
-- `titulospub/` é completamente independente de frameworks web
-- `api/` importa `titulospub/` mas não executa cálculos
-- `dash_app/` consome apenas a API via HTTP (não importa `titulospub/`)
+Fluxo de uso:
+
+```mermaid
+flowchart LR
+    user[User] --> dashApp[DashApp]
+    dashApp --> apiFastAPI[FastAPI_API]
+    apiFastAPI --> domain[titulospub]
+```
+
+- `titulospub/` **não** depende de FastAPI nem de Dash.
+- `api/` importa `titulospub` e expõe os cálculos via HTTP.
+- `dash_app/` consome **apenas** a API via HTTP (não importa `titulospub` diretamente).
+
+---
 
 ## Instalação
 
-```bash
-# Instalar dependências
-pip install -r requirements.txt
+Recomendado usar ambiente virtual.
 
-# Instalar pacote titulospub em modo desenvolvimento
+```bash
+git clone <URL_DO_REPOSITORIO>
+cd calculadora_titulos_publicos
+
+python -m venv .venv
+# Windows
+.venv\Scripts\activate
+# Linux/macOS
+source .venv/bin/activate
+
+pip install -r requirements.txt
 pip install -e .
 ```
 
-## Como Usar
+Após isso, o pacote `titulospub` pode ser importado normalmente em Python e no notebook.
 
-### 1. Iniciar a API
+---
+
+## Como rodar em desenvolvimento
+
+### 1. Rodar somente a API (FastAPI)
 
 ```bash
 python run_api.py
 ```
 
-A API estará disponível em: http://localhost:8000
-- Documentação interativa: http://localhost:8000/docs
-- Documentação alternativa: http://localhost:8000/redoc
+A API ficará disponível em:
 
-**Configuração de Workers:**
-- Por padrão, usa 1 worker (adequado para desenvolvimento)
-- Para produção com múltiplos workers, configure via variável de ambiente:
-  ```bash
-  export API_WORKERS=4
-  python run_api.py
-  ```
+- `http://localhost:8000`
+- Documentação Swagger: `http://localhost:8000/docs`
+- Documentação ReDoc: `http://localhost:8000/redoc`
 
-### 2. Iniciar Interface Dash
+**Workers (API):**
+
+- Por padrão, `run_api.py` usa **1 worker**, adequado para desenvolvimento.
+- Para aumentar, defina a variável de ambiente:
+
+```bash
+set API_WORKERS=4      # Windows (cmd)
+export API_WORKERS=4   # Linux/macOS
+python run_api.py
+```
+
+> Atenção: carteiras hoje usam estado em memória, então múltiplos workers podem ter limitações.
+
+### 2. Rodar somente o Dash
+
+Requer a API rodando em `http://localhost:8000` (ou conforme configurado em `dash_app/config.py`).
 
 ```bash
 python run_dash_app.py
 ```
 
-A interface abrirá automaticamente em: http://127.0.0.1:8050
+Por padrão, a interface estará em:
 
-**Nota:** O Dash consome a API via HTTP, então a API deve estar rodando primeiro.
+- `http://127.0.0.1:8050`
 
-## Endpoints da API
+Variáveis de ambiente suportadas:
 
-### Títulos Individuais
-- `POST /titulos/ltn` - Criar título LTN
-- `POST /titulos/lft` - Criar título LFT
-- `POST /titulos/ntnb` - Criar título NTNB
-- `POST /titulos/ntnb/hedge-di` - Calcular hedge DI para NTNB
-- `POST /titulos/ntnf` - Criar título NTNF
+- `DEBUG` (`True` / `False`) – modo debug do Dash (padrão: `False`).
+- `DASH_HOST` – host para o servidor (padrão: `0.0.0.0`).
+- `DASH_PORT` – porta do servidor (padrão: `8050`).
 
-### Carteiras
-- `POST /carteiras/{tipo}` - Criar carteira (ltn, lft, ntnb, ntnf)
-- `GET /carteiras/{carteira_id}` - Obter dados da carteira
-- `PUT /carteiras/{carteira_id}/taxa` - Atualizar taxa de um título
-- `PUT /carteiras/{carteira_id}/dias` - Atualizar dias de liquidação
+Exemplos:
 
-### Outros
-- `POST /equivalencia` - Calcular equivalência entre títulos
-- `GET /vencimentos/{tipo}` - Listar vencimentos disponíveis
-- `GET /health` - Health check da API
-- `GET /ready` - Readiness check (para load balancers)
-- `GET /live` - Liveness check (para orquestradores)
+```bash
+set DEBUG=True
+set DASH_PORT=8051
+python run_dash_app.py
+```
 
-## Uso do Pacote Python
+### 3. Rodar API e Dash juntos (desenvolvimento)
+
+Para conveniência em ambiente local, há um script que sobe **API e Dash ao mesmo tempo**:
+
+```bash
+python run_all_dev.py
+```
+
+Comportamento:
+
+- Inicia `run_api.py` e `run_dash_app.py` em subprocessos separados.
+- Mantém os dois processos rodando até você pressionar **Ctrl+C**.
+- Ao interromper, tenta encerrar os subprocessos de forma limpa.
+
+> **Importante:** `run_all_dev.py` é pensado **apenas para desenvolvimento local**.  
+> Em produção, use um servidor de aplicações adequado (por exemplo, `uvicorn`/`gunicorn` para a API FastAPI) e configure o Dash de forma separada.
+
+---
+
+## Uso direto do pacote `titulospub`
+
+Além da API, você pode usar o núcleo de cálculo diretamente em Python:
 
 ```python
 from titulospub import NTNB, LTN, LFT, NTNF, equivalencia
 
-# Criar título
+# Criar título LTN
 ltn = LTN("2025-01-01", taxa=12.5)
-ltn.quantidade = 50000
+ltn.quantidade = 50_000
 print(f"Financeiro: R$ {ltn.financeiro:,.2f}")
 
-# Calcular equivalência
-eq = equivalencia("LTN", "2025-01-01", "NTNB", "2035-05-15", 
-                  qtd1=10000, criterio="dv")
+# Calcular equivalência entre títulos
+eq = equivalencia(
+    "LTN", "2025-01-01",
+    "NTNB", "2035-05-15",
+    qtd1=10_000,
+    criterio="dv",
+)
+print("Equivalência (qtd NTNB):", eq)
 ```
 
+Para um fluxo mais completo de testes manuais da calculadora, você pode usar o notebook:
 
-## Testes
+- `teste_calculadora_titulospub.ipynb`
 
-O projeto inclui testes de regressão para garantir que mudanças não alterem comportamento:
+Abra-o em Jupyter/VSCode após instalar as dependências e execute as células em ordem.
 
-```bash
-# Executar todos os testes
-pytest tests/regression/
+---
 
-# Executar com verbose
-pytest tests/regression/ -v
-```
+## API – endpoints principais
 
-**Cobertura:** 15 testes cobrindo endpoints principais (LTN, LFT, NTNB, NTNF, equivalência, vencimentos)
+Alguns endpoints expostos pela API FastAPI (ver documentação em `/docs`):
 
-## Desenvolvido com
+- **Títulos individuais**
+  - `POST /titulos/ltn` – criar título LTN
+  - `POST /titulos/lft` – criar título LFT
+  - `POST /titulos/ntnb` – criar título NTNB
+  - `POST /titulos/ntnb/hedge-di` – calcular hedge DI de NTNB
+  - `POST /titulos/ntnf` – criar título NTNF
 
-- **FastAPI** - Framework web moderno para API REST
-- **Dash** - Framework web para interface interativa
-- **Python 3.8+** - Linguagem de programação
-- **Pydantic** - Validação de dados
-- **Pandas** - Manipulação de dados financeiros
-- **pytest** - Framework de testes
+- **Carteiras**
+  - `POST /carteiras/{tipo}` – criar carteira (ltn, lft, ntnb, ntnf)
+  - `GET /carteiras/{carteira_id}` – obter dados da carteira
+  - `PUT /carteiras/{carteira_id}/taxa` – atualizar taxa de um título
+  - `PUT /carteiras/{carteira_id}/dias` – atualizar dias de liquidação
 
-## Documentação Adicional
+- **Outros**
+  - `POST /equivalencia` – equivalência entre títulos
+  - `GET /vencimentos/{tipo}` – listar vencimentos disponíveis
+  - `GET /health`, `/ready`, `/live` – health/readiness/liveness checks
 
-Para mais detalhes sobre o sistema, consulte:
-- `DOCS_CODEBASE.md` - Documentação completa do código e arquitetura
-- `explain/` - Documentação explicativa detalhada:
-  - `00_project_summary.md` - Resumo geral do projeto
-  - `01_modules_map.md` - Mapa de módulos
-  - `02_execution_flow.md` - Fluxos de execução
-  - `03_functions_index.md` - Índice de funções e classes
-  - `04_assumptions_and_risks.md` - Suposições e riscos
-- `RUNBOOK.md` - Guia de operação e deploy
+---
 
+## Pastas e arquivos não essenciais (podem ser removidos)
 
+Para ter um repositório **mínimo** focado apenas no produto (domínio + API + Dash), você pode remover ou ignorar pastas/arquivos de suporte que não são necessários para rodar o app em produção, como por exemplo:
 
+- Antigas versões de domínio ou refactors experimentais (`titulospub_domain/`, se ainda existir).
+- Estruturas de banco de dados, ETL e scripts auxiliares (`db/`, `data/`, `database/`, jobs específicos).
+- Conjuntos extensos de testes ou notebooks exploratórios que não façam parte do fluxo oficial.
+- Documentações internas muito detalhadas (arquivos markdown adicionais, pastas de `explain/` etc.).
 
-
-
+Este README descreve **apenas o núcleo estável** que deve ser mantido para subir a aplicação em um servidor e disponibilizar a calculadora para usuários finais.
