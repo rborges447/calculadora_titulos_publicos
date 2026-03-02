@@ -34,6 +34,9 @@ from .dap.calculo_dap import dia_15_do_mes, calculo_prt, calculo_pu_dap, calculo
 # Importar função de equivalência
 from .equivalencia import equivalencia
 
+# Importar função de VNA NTNB
+from .ntnb.vna_ntnb import calculo_vna_ajustado_ntnb
+
 # Lista de todas as classes disponíveis
 __all__ = [
     'NTNB',
@@ -47,7 +50,8 @@ __all__ = [
     'dia_15_do_mes',
     'calculo_prt',
     'calculo_pu_dap',
-    'calculo_financeiro_dap'
+    'calculo_financeiro_dap',
+    'calculo_vna_ajustado_ntnb'
 ]
 
 # Versão do módulo

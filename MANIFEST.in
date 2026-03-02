@@ -3,6 +3,13 @@ include requirements.txt
 include setup.py
 include pyproject.toml
 recursive-include titulospub *.py
+recursive-include api_anbima *.py
+recursive-include database *.py
+
+
+
+
+
 
 
 

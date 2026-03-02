@@ -1,48 +1,73 @@
-# Arquivos de controle da API
-api/.ultima_atualizacao.json
+# =========================
+# Segredos / ambiente
+# =========================
+.env
+.env.*
 
+# =========================
+# Banco de dados local
+# =========================
+*.db
+*.sqlite
+*.sqlite3
+
+# =========================
 # Python
+# =========================
 __pycache__/
 *.py[cod]
-*$py.class
-*.so
-.Python
+*.pyo
+*.pyd
+
+# =========================
+# Build / distribuição
+# =========================
 *.egg-info/
 dist/
 build/
 
+# =========================
 # Ambiente virtual
+# =========================
 venv/
 env/
 ENV/
 
-# IDEs
+# =========================
+# IDEs / editores
+# =========================
 .vscode/
 .idea/
 *.swp
 *.swo
 
-# Cache e dados temporários
+# =========================
+# Cache / temporários
+# =========================
 *.pkl
 *.cache
 .pytest_cache/
 
+# =========================
 # Logs
+# =========================
 *.log
 
+# =========================
 # Sistema operacional
+# =========================
 .DS_Store
 Thumbs.db
 
+# =========================
+# Controle interno (seu)
+# =========================
+api/.ultima_atualizacao.json
 
 
-venv/
-__pycache__/
-.pytest_cache/
-.env
-*.pyc
-*.pyo
-*.pyd
+
+
+
 
 
 

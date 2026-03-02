@@ -37,10 +37,12 @@ dev = [
 ]
 
 [tool.setuptools]
-packages = ["titulospub"]
+packages = ["titulospub", "api_anbima", "database"]
 
 [tool.setuptools.package-data]
 titulospub = ["**/*.py"]
+api_anbima = ["**/*.py"]
+database = ["**/*.py"]
 
 # Configuração de formatação (Black)
 [tool.black]
