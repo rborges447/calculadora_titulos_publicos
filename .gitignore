@@ -45,6 +45,7 @@ ENV/
 # Cache / temporários
 # =========================
 *.pkl
+!tests/fixtures/variaveis_mercado/*.pkl
 *.cache
 .pytest_cache/
 

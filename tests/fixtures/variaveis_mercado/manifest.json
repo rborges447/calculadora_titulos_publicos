@@ -1,0 +1,127 @@
+{
+  "data_base": "2026-05-25",
+  "generated_at": "2026-05-28T22:03:26.341971+00:00",
+  "strategy": "VariaveisMercado.get_* (cache -> scraping -> backup)",
+  "fixtures": {
+    "feriados.pkl": {
+      "status": "ok",
+      "type": "list",
+      "size": 1264
+    },
+    "ipca_dict.pkl": {
+      "status": "ok",
+      "type": "dict",
+      "keys": [
+        "INDICE_IPCA_DATA_BASE",
+        "INDICE_IPCA_FECHADO_ANTERIOR",
+        "INDICE_IPCA_FECHADO_ATUAL",
+        "IPCA_PROJ",
+        "IPCA_USADO",
+        "ULTIMO_MES_IPCA",
+        "VAR_IPCA_ANTERIOR",
+        "VAR_IPCA_ATUAL"
+      ]
+    },
+    "cdi.pkl": {
+      "status": "ok",
+      "type": "float",
+      "value": 14.4
+    },
+    "anbimas.pkl": {
+      "status": "ok",
+      "type": "dict",
+      "keys": [
+        "LFT",
+        "LTN",
+        "NTN-B",
+        "NTN-C",
+        "NTN-F"
+      ],
+      "dataframes": {
+        "LTN": {
+          "rows": 12,
+          "columns": [
+            "TITULO",
+            "DATA",
+            "VENCIMENTO",
+            "ANBIMA",
+            "PU"
+          ]
+        },
+        "NTN-C": {
+          "rows": 1,
+          "columns": [
+            "TITULO",
+            "DATA",
+            "VENCIMENTO",
+            "ANBIMA",
+            "PU"
+          ]
+        },
+        "LFT": {
+          "rows": 17,
+          "columns": [
+            "TITULO",
+            "DATA",
+            "VENCIMENTO",
+            "ANBIMA",
+            "PU"
+          ]
+        },
+        "NTN-B": {
+          "rows": 15,
+          "columns": [
+            "TITULO",
+            "DATA",
+            "VENCIMENTO",
+            "ANBIMA",
+            "PU"
+          ]
+        },
+        "NTN-F": {
+          "rows": 6,
+          "columns": [
+            "TITULO",
+            "DATA",
+            "VENCIMENTO",
+            "ANBIMA",
+            "PU"
+          ]
+        }
+      }
+    },
+    "bmf.pkl": {
+      "status": "ok",
+      "type": "dict",
+      "keys": [
+        "DAP",
+        "DI"
+      ],
+      "dataframes": {
+        "DI": {
+          "rows": 47,
+          "columns": [
+            "DATA",
+            "DATA_VENCIMENTO",
+            "DI",
+            "ADJ"
+          ]
+        },
+        "DAP": {
+          "rows": 22,
+          "columns": [
+            "DATA",
+            "DATA_VENCIMENTO",
+            "DAP",
+            "ADJ"
+          ]
+        }
+      }
+    },
+    "vna_lft.pkl": {
+      "status": "ok",
+      "type": "float",
+      "value": 19069.075129
+    }
+  }
+}
