@@ -143,8 +143,10 @@ def _export_ipca_dict(
     return ipca_dict
 
 
-def _export_cdi(vm: VariaveisMercado, force_update: bool) -> float:
-    cdi = vm.get_cdi(force_update=force_update)
+def _export_cdi(
+    vm: VariaveisMercado, data_base: pd.Timestamp, force_update: bool
+) -> float:
+    cdi = vm.get_cdi(data=data_base, force_update=force_update)
     _validate_cdi(cdi)
     return cdi
 
@@ -288,7 +290,7 @@ def export_fixtures(
     else:
         try:
             print(f"Exportando {filename}...")
-            cdi = _export_cdi(vm, force_update=force_update)
+            cdi = _export_cdi(vm, data_base=data_ts, force_update=force_update)
             _save_pickle(cdi, output_dir / filename)
             fixtures_meta[filename] = {"status": "ok", **_describe_value(cdi)}
             print(f"[OK] {filename}")

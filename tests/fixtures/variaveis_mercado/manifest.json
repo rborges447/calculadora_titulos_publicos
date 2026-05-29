@@ -1,12 +1,12 @@
 {
   "data_base": "2026-05-25",
-  "generated_at": "2026-05-28T22:03:26.341971+00:00",
-  "strategy": "VariaveisMercado.get_* (cache -> scraping -> backup)",
+  "generated_at": "2026-05-29T17:08:47.958860+00:00",
+  "strategy": "feriados: db_reader; demais: VariaveisMercado.get_* (cache -> scraping -> backup)",
   "fixtures": {
     "feriados.pkl": {
       "status": "ok",
       "type": "list",
-      "size": 1264
+      "size": 1263
     },
     "ipca_dict.pkl": {
       "status": "ok",

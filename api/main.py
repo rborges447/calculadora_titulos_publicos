@@ -3,7 +3,7 @@ API FastAPI para cálculo de títulos públicos brasileiros
 """
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 
 from titulospub.dados.orquestrador import VariaveisMercado
@@ -11,7 +11,7 @@ from titulospub.dados.orquestrador import VariaveisMercado
 from .logging_config import get_logger
 from .middleware.metrics import MetricsMiddleware
 from .routers import carteiras, equivalencia, lft, ltn, ntnb, ntnf, vencimentos
-from .utils import marcar_atualizado, precisa_atualizar_mercado
+from .utils import marcar_atualizado, precisa_atualizar_mercado, resolver_data_mercado
 
 # Logger para este módulo
 logger = get_logger("api.main")
@@ -29,8 +29,8 @@ async def lifespan(app: FastAPI):
         logger.info("Atualizando variáveis de mercado (primeira vez hoje)")
         try:
             vm = VariaveisMercado()
-            # Usar o método atualizar_tudo() que já faz tudo automaticamente
-            vm.atualizar_tudo(verbose=True)
+            data_ref = resolver_data_mercado()
+            vm.atualizar_tudo(data_ref, verbose=True)
             marcar_atualizado()
             print("✅ Variáveis de mercado atualizadas com sucesso!")
             logger.info("Variáveis de mercado atualizadas com sucesso")
@@ -167,25 +167,34 @@ def liveness_check():
 
 
 @app.post("/atualizar-mercado", tags=["Admin"])
-def forcar_atualizacao_mercado():
+def forcar_atualizacao_mercado(
+    data: str | None = Query(
+        None,
+        description="Data de referência YYYY-MM-DD (padrão: D-1 útil)",
+    ),
+):
     """
     Força a atualização das variáveis de mercado (admin)
     Útil para atualizar manualmente se necessário
     """
-    from .utils import marcar_atualizado, get_ultima_atualizacao
-    from titulospub.dados.orquestrador import VariaveisMercado
-    
+    from .utils import get_ultima_atualizacao, marcar_atualizado
+
     try:
-        print("🔄 Forçando atualização de variáveis de mercado...")
-        logger.info("Forçando atualização de variáveis de mercado (endpoint admin)")
+        data_ref = resolver_data_mercado(data)
+        print(f"🔄 Forçando atualização de variáveis de mercado (data={data_ref.date()})...")
+        logger.info(
+            "Forçando atualização de variáveis de mercado (endpoint admin, data=%s)",
+            data_ref.date(),
+        )
         vm = VariaveisMercado()
-        vm.atualizar_tudo(verbose=True)
+        vm.atualizar_tudo(data_ref, verbose=True)
         marcar_atualizado()
         logger.info("Variáveis de mercado atualizadas com sucesso (endpoint admin)")
         return {
             "status": "success",
             "message": "Variáveis de mercado atualizadas com sucesso",
-            "data": get_ultima_atualizacao()
+            "data": get_ultima_atualizacao(),
+            "data_referencia": data_ref.strftime("%Y-%m-%d"),
         }
     except Exception as e:
         logger.error(f"Erro ao atualizar variáveis de mercado (endpoint admin): {e}")

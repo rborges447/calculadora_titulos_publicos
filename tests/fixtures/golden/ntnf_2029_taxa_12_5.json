@@ -1,0 +1,14 @@
+{
+  "data_base": "2026-05-25",
+  "data_vencimento": "2029-01-01",
+  "taxa": 12.5,
+  "quantidade": 50000,
+  "dias_liquidacao": 1,
+  "outputs": {
+    "pu_d0": 988.408854,
+    "pu_termo": 988.870937,
+    "dv01": 9874.550000000681,
+    "hedge_di": 607,
+    "financeiro": 49420442.7
+  }
+}

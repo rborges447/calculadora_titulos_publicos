@@ -1,0 +1,16 @@
+{
+  "data_base": "2026-05-25",
+  "data_vencimento": "2035-05-15",
+  "taxa": 7.0,
+  "quantidade": 10000,
+  "dias_liquidacao": 1,
+  "outputs": {
+    "cotacao": 94.0417,
+    "pu_d0": 4429.693442,
+    "pu_termo": 4431.985867,
+    "dv01": 28842.270000004646,
+    "duration": 7.006077148864105,
+    "carrego_brl": -708.6300000082701,
+    "hedge_dap": 351
+  }
+}

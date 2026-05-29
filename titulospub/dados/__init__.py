@@ -1,49 +1,30 @@
 """
 Módulo de dados para o projeto de calculadora de títulos públicos.
 
-Este módulo contém:
-- Funções de backup para dados de mercado
-- Sistema de cache para otimização
-- Processamento de dados ANBIMA, BMF e IPCA
-- Orquestrador de variáveis de mercado
+Normalizers (ANBIMA, BMF, IPCA, backups) em ``transforms/``.
 """
 
-# Imports principais do módulo backup
-from .backup import (
+from .cache import (
+    clear_cache,
+    load_cache,
+    save_cache,
+)
+from .orquestrador import (
+    VariaveisMercado,
+)
+from .transforms import (
+    anbimas,
+    ajustes_bmf,
+    ajustes_bmf_net,
+    backup_anbimas,
+    backup_bmf,
     backup_cdi,
     backup_feriados,
     backup_ipca_fechado,
     backup_ipca_proj,
-    backup_anbimas,
-    backup_bmf
-)
-
-# Imports principais do módulo cache
-from .cache import (
-    save_cache,
-    load_cache,
-    clear_cache
-)
-
-# Imports principais do módulo anbimas
-from .anbimas import (
-    anbimas
-)
-
-# Imports principais do módulo bmf
-from .bmf import (
-    ajustes_bmf,
-    ajustes_bmf_net
-)
-
-# Imports principais do módulo ipca
-from .ipca import (
-    dicionario_ipca
-)
-
-# Imports principais do módulo orquestrador
-from .orquestrador import (
-    VariaveisMercado
+    inicio_fim_mes_ipca,
+    ipca_dict_from_db,
+    transform_ipca,
 )
 
 __all__ = [
@@ -64,11 +45,13 @@ __all__ = [
     'anbimas',
     'ajustes_bmf',
     'ajustes_bmf_net',
-    'dicionario_ipca',
+    'inicio_fim_mes_ipca',
+    'ipca_dict_from_db',
+    'transform_ipca',
     
     # Classe principal
     'VariaveisMercado'
 ]
 
 # Versão do módulo
-__version__ = "1.0.0" 
+__version__ = "1.0.0"

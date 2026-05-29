@@ -1,0 +1,39 @@
+{
+  "data_base": "2026-05-25",
+  "request": {
+    "data_vencimento": "2035-05-15",
+    "data_base": "2026-05-25",
+    "taxa": 7.0,
+    "quantidade": 10000,
+    "dias_liquidacao": 1
+  },
+  "response": {
+    "tipo": "NTNB",
+    "nome": "NTNB 2035",
+    "data_vencimento": "2035-05-15",
+    "data_base": "2026-05-25",
+    "data_liquidacao": "2026-05-26",
+    "dias_liquidacao": 1,
+    "taxa": 7.0,
+    "quantidade": 10000.0,
+    "financeiro": 44319858.67,
+    "pu_d0": 4429.693442,
+    "pu_termo": 4431.985867,
+    "pu_carregado": 4432.058877,
+    "pu_ajustado": 4431.988014,
+    "dv01": 28842.270000004646,
+    "carrego_brl": -708.6300000082701,
+    "carrego_bps": -0.024569147990368165,
+    "premio": null,
+    "cotacao": 94.0417,
+    "duration": 7.006077148864105,
+    "data_vencimento_duration": "2033-05-27",
+    "dias_duration": 1756,
+    "ajuste_dap": 7.605,
+    "premio_anbima_dap": 10.719999999999974,
+    "hedge_dap": 351,
+    "vna": null,
+    "vna_tesouro": null,
+    "taxa_anbima": 7.7122
+  }
+}

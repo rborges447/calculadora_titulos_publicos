@@ -72,7 +72,9 @@ from .dados import (
     anbimas,
     ajustes_bmf,
     ajustes_bmf_net,
-    dicionario_ipca,
+    inicio_fim_mes_ipca,
+    ipca_dict_from_db,
+    transform_ipca,
     VariaveisMercado
 )
 
@@ -129,7 +131,9 @@ __all__ = [
     'anbimas',
     'ajustes_bmf',
     'ajustes_bmf_net',
-    'dicionario_ipca',
+    'inicio_fim_mes_ipca',
+    'ipca_dict_from_db',
+    'transform_ipca',
     'VariaveisMercado'
 ]
 

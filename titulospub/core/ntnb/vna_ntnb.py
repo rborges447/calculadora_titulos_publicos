@@ -4,7 +4,7 @@ from math import trunc
 from titulospub.utils.datas import adicionar_dias_uteis, e_dia_util, dias_trabalho_total
 from titulospub.utils.carregamento_var_globais import _carregar_feriados_se_necessario, _carrecar_ipca_dict_se_necessario
 
-from titulospub.dados.ipca import inicio_fim_mes_ipca
+from titulospub.dados.transforms import inicio_fim_mes_ipca
 
 def calculo_vna_ntnb(data: pd.Timestamp, ipca_dict: dict=None, feriados: list=None):
 

@@ -3,6 +3,7 @@
 # =========================
 .env
 .env.*
+!.env.example
 
 # =========================
 # Banco de dados local

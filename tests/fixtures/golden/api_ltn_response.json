@@ -1,0 +1,33 @@
+{
+  "data_base": "2026-05-25",
+  "request": {
+    "data_vencimento": "2027-07-01",
+    "data_base": "2026-05-25",
+    "taxa": 12.5,
+    "quantidade": 50000,
+    "dias_liquidacao": 1
+  },
+  "response": {
+    "tipo": "LTN",
+    "nome": "LTN 7/2027",
+    "data_vencimento": "2027-07-01",
+    "data_base": "2026-05-25",
+    "data_liquidacao": "2026-05-26",
+    "dias_liquidacao": 1,
+    "taxa": 12.5,
+    "quantidade": 50000.0,
+    "financeiro": 43948677.7,
+    "pu_d0": 878.973554,
+    "pu_termo": 879.384476,
+    "pu_carregado": 879.442921,
+    "dv01": 4264.699999998811,
+    "carrego_brl": -2922.2500000003038,
+    "carrego_bps": -0.6852181865081057,
+    "premio": null,
+    "di": null,
+    "ajuste_di": 13.86,
+    "premio_anbima": -15.499999999999936,
+    "hedge_di": 500,
+    "taxa_anbima": 13.705
+  }
+}

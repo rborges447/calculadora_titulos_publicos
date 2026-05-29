@@ -71,6 +71,12 @@ use_parentheses = true
 ensure_newline_before_comments = true
 skip_glob = ["*/venv/*", "*/__pycache__/*", "*/.pytest_cache/*"]
 
+[tool.pytest.ini_options]
+markers = [
+    "regression: testes de regressão da refatoração VariaveisMercado",
+    "slow: testes que acessam lake/rede (excluídos do CI padrão)",
+]
+
 
 
 

@@ -60,7 +60,7 @@ if __name__ == "__main__":
     print("🔄 Testando processamento BMF...")
     
     try:
-        from titulospub.dados.backup import backup_bmf
+        from titulospub.dados.transforms.backup import backup_bmf
         import pandas as pd
         
         print("📊 Carregando dados BMF de backup...")

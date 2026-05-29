@@ -1,0 +1,33 @@
+{
+  "data_base": "2026-05-25",
+  "request": {
+    "data_vencimento": "2029-01-01",
+    "data_base": "2026-05-25",
+    "taxa": 12.5,
+    "quantidade": 50000,
+    "dias_liquidacao": 1
+  },
+  "response": {
+    "tipo": "NTNF",
+    "nome": "NTNF 1/2029",
+    "data_vencimento": "2029-01-01",
+    "data_base": "2026-05-25",
+    "data_liquidacao": "2026-05-26",
+    "dias_liquidacao": 1,
+    "taxa": 12.5,
+    "quantidade": 50000.0,
+    "financeiro": 49420442.7,
+    "pu_d0": 988.408854,
+    "pu_termo": 988.870937,
+    "pu_carregado": 988.936659,
+    "dv01": 9874.550000000681,
+    "carrego_brl": -3286.09999999685,
+    "carrego_bps": -0.332784785129107,
+    "premio": null,
+    "di": null,
+    "ajuste_di": 13.675,
+    "premio_anbima": 5.139999999999922,
+    "hedge_di": 607,
+    "taxa_anbima": 13.7264
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "data_base": "2026-05-25",
+  "data_vencimento": "2027-03-01",
+  "taxa": 0.01,
+  "quantidade": 10000,
+  "dias_liquidacao": 1,
+  "outputs": {
+    "cotacao": 99.9924,
+    "pu_d0": 19067.625879,
+    "pu_termo": 19077.807991,
+    "pu_carregado": 19077.807901,
+    "financeiro": 190676258.79
+  }
+}

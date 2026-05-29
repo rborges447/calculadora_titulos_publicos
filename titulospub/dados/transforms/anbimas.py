@@ -47,7 +47,7 @@ if __name__ == "__main__":
     print("🔄 Testando processamento ANBIMA...")
     
     try:
-        from titulospub.dados.backup import backup_anbimas
+        from titulospub.dados.transforms.backup import backup_anbimas
         
         print("📊 Carregando dados ANBIMA de backup...")
         anbimas_data = backup_anbimas()

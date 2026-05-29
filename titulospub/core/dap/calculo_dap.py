@@ -1,6 +1,6 @@
 import pandas as pd
 
-from titulospub.dados.ipca import inicio_fim_mes_ipca
+from titulospub.dados.transforms import inicio_fim_mes_ipca
 from titulospub.utils.datas import dias_trabalho_total, data_vencimento_ajustada
 from titulospub.utils.carregamento_var_globais import _carrecar_ipca_dict_se_necessario, _carregar_feriados_se_necessario
 from titulospub.dados.orquestrador import VariaveisMercado

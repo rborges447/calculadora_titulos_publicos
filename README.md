@@ -54,7 +54,43 @@ pip install -r requirements.txt
 pip install -e .
 ```
 
+O `requirements.txt` inclui o pacote **`brazilian_bonds_db`** via repositório irmão (`../brazil_fixed_income_analytics`). Mantenha esse clone ao lado deste projeto.
+
 Após isso, o pacote `titulospub` pode ser importado normalmente em Python e no notebook.
+
+### Dados de mercado (`.env`)
+
+Paths do lake e do SQLite são configurados na raiz do repositório:
+
+```bash
+# Windows
+copy .env.example .env
+# Linux/macOS
+cp .env.example .env
+```
+
+Edite `.env` se os caminhos da sua máquina forem diferentes. O arquivo `.env` **não** é versionado.
+
+| Variável | Uso |
+|----------|-----|
+| `BBDB_DATA_ROOT` | Raiz do projeto / `data_root` em `bbdb.update(...)` |
+| `BBDB_DB_PATH` | Caminho do SQLite (`bbdb.read_data(db_path=...)`) |
+
+O módulo [`titulospub/dados/db_reader.py`](titulospub/dados/db_reader.py) carrega o `.env` automaticamente e expõe `get_repo_root()`, `get_db_path()` e `get_reader()`.
+
+Exemplo (materializar ou ler dados):
+
+```python
+import brazilian_bonds_db as bbdb
+from titulospub.dados.db_reader import get_repo_root, get_db_path, get_reader
+
+bbdb.update(data_root=str(get_repo_root()))
+reader = get_reader()  # usa BBDB_DB_PATH do .env
+```
+
+> **Nota:** `*.db` está no `.gitignore` — cada ambiente materializa `database/app.db` localmente. Os testes de regressão (`pytest -m regression`) rodam **offline** com fixtures e não exigem o banco.
+
+**Python:** o pacote `brazilian_bonds_db` requer **Python ≥ 3.10**.
 
 ---
 
