@@ -43,10 +43,11 @@ CACHE_TO_FIXTURE = {
     "anbimas.pkl": "anbimas",
     "bmf.pkl": "bmf",
     "vna_lft.pkl": "vna_lft",
+    "ptax.pkl": "ptax",
 }
 
 ANBIMAS_KEYS = {"LTN", "NTN-B", "NTN-F", "LFT"}
-ANBIMAS_COLS = {"TITULO", "DATA", "VENCIMENTO", "ANBIMA", "PU"}
+ANBIMAS_COLS = {"TITULO", "DATA", "VENCIMENTO", "ANBIMA", "PU", "QTD_OPERADA"}
 BMF_KEYS = {"DI", "DAP"}
 IPCA_KEYS = {
     "ULTIMO_MES_IPCA",
@@ -78,7 +79,11 @@ def _mock_load_cache(filename: str) -> Any:
 
 @contextmanager
 def patch_variaveis_mercado_io() -> Iterator[None]:
-    """Mocka I/O do orquestrador para servir baseline offline."""
+    """Mocka I/O do orquestrador para servir baseline offline.
+
+    Estratégia oficial (Spec 002 Fase 3): ``load_cache`` → pickles em
+    ``tests/fixtures/variaveis_mercado/``; ``*_from_db`` bloqueados (sem rede/DB).
+    """
     patch_targets = [
         ("titulospub.dados.orquestrador.load_cache", {"side_effect": _mock_load_cache}),
         ("titulospub.dados.orquestrador.save_cache", {}),
@@ -98,11 +103,38 @@ def patch_variaveis_mercado_io() -> Iterator[None]:
             "titulospub.dados.orquestrador.vna_lft_from_db",
             {"side_effect": _forbidden_network},
         ),
-        ("titulospub.dados.orquestrador.scrap_anbimas", {"side_effect": _forbidden_network}),
-        ("titulospub.dados.orquestrador.ajustes_bmf", {"side_effect": _forbidden_network}),
-        ("titulospub.dados.orquestrador.scrap_bmf_net", {"side_effect": _forbidden_network}),
-        ("titulospub.dados.orquestrador.backup_anbimas", {"side_effect": _forbidden_network}),
-        ("titulospub.dados.orquestrador.backup_bmf", {"side_effect": _forbidden_network}),
+        (
+            "titulospub.dados.orquestrador.anbimas_from_db",
+            {"side_effect": _forbidden_network},
+        ),
+        (
+            "titulospub.dados.orquestrador.bmf_from_db",
+            {"side_effect": _forbidden_network},
+        ),
+        (
+            "titulospub.dados.orquestrador.ptax_from_db",
+            {"side_effect": _forbidden_network},
+        ),
+        (
+            "titulospub.dados.orquestrador.feriados_from_scraping",
+            {"side_effect": _forbidden_network},
+        ),
+        (
+            "titulospub.dados.orquestrador.cdi_from_scraping",
+            {"side_effect": _forbidden_network},
+        ),
+        (
+            "titulospub.dados.orquestrador.vna_lft_from_scraping",
+            {"side_effect": _forbidden_network},
+        ),
+        (
+            "titulospub.dados.orquestrador.anbimas_from_scraping",
+            {"side_effect": _forbidden_network},
+        ),
+        (
+            "titulospub.dados.orquestrador.bmf_from_scraping",
+            {"side_effect": _forbidden_network},
+        ),
     ]
     with contextlib.ExitStack() as stack:
         for target, kwargs in patch_targets:
@@ -143,6 +175,7 @@ class VariaveisMercadoFixture:
         self._vna_lft: float | None = None
         self._anbimas: dict[str, pd.DataFrame] | None = None
         self._bmf: dict[str, pd.DataFrame] | None = None
+        self._ptax: float | None = None
 
     def get_feriados(self, force_update: bool = False) -> list:
         if self._feriados is None:
@@ -194,6 +227,15 @@ class VariaveisMercadoFixture:
         if self._vna_lft is None:
             self._vna_lft = load_fixture("vna_lft")
         return self._vna_lft
+
+    def get_ptax(
+        self,
+        data: pd.Timestamp | None = None,
+        force_update: bool = False,
+    ) -> float:
+        if self._ptax is None:
+            self._ptax = load_fixture("ptax")
+        return self._ptax
 
     def atualizar_tudo(self, data, verbose: bool = True) -> None:
         """No-op — preparado para patch no lifespan da API (Fase 5)."""

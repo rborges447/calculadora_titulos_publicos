@@ -3,8 +3,25 @@ import pickle
 
 CACHE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cache_data")
 
+
+def persist_disk_cache_enabled() -> bool:
+    """
+    Escrita em ``cache_data/*.pkl`` (acelerador local).
+
+    Produção multi-worker pode desligar com ``VM_PERSIST_DISK_CACHE=0``;
+    cache em memória no orquestrador permanece ativo.
+    """
+    return os.getenv("VM_PERSIST_DISK_CACHE", "1").strip().lower() not in (
+        "0",
+        "false",
+        "no",
+    )
+
+
 def save_cache(data, filename):
     """Salva um objeto em um arquivo pickle na pasta de cache."""
+    if not persist_disk_cache_enabled():
+        return
     # Cria a pasta cache_data se não existir
     os.makedirs(CACHE_DIR, exist_ok=True)
     filepath = os.path.join(CACHE_DIR, filename)

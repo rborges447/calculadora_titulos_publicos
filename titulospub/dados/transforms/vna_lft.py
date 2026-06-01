@@ -42,3 +42,10 @@ def vna_lft_from_db(data: pd.Timestamp | str) -> float:
             "Execute bbdb.update e materialize o gold vna até essa data."
         )
     return transform_vna_lft(df)
+
+
+def vna_lft_from_scraping(data: pd.Timestamp | str) -> float:
+    """LEGACY_ACQUISITION — VNA LFT via arquivo .tex ANBIMA (rede)."""
+    from titulospub.scraping.anbima_scraping import scrap_vna_lft
+
+    return float(scrap_vna_lft(pd.Timestamp(data).normalize()))

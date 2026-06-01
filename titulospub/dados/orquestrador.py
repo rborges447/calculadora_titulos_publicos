@@ -1,24 +1,24 @@
-import os
-
 import pandas as pd
 
-from titulospub.dados.transforms import (
-    anbimas,
-    ajustes_bmf,
-    ajustes_bmf_net,
-)
-from titulospub.dados.transforms.cdi import cdi_from_db
-from titulospub.dados.transforms.feriados import feriados_from_db
-from titulospub.dados.transforms.ipca import ipca_dict_from_db
-from titulospub.dados.transforms.vna_lft import vna_lft_from_db
-from titulospub.dados.transforms.backup import (
-    backup_anbimas,
-    backup_bmf,
-)
 from titulospub.dados.cache import clear_cache, load_cache, save_cache
-from titulospub.scraping import scrap_bmf_net
-from titulospub.scraping.anbima_scraping import scrap_anbimas
+from titulospub.dados.resilience import fetch_with_fallback
+from titulospub.dados.transforms.anbimas import anbimas_from_db, anbimas_from_scraping
+from titulospub.dados.transforms.bmf import bmf_from_db, bmf_from_scraping
+from titulospub.dados.transforms.cdi import cdi_from_db, cdi_from_scraping
+from titulospub.dados.transforms.feriados import feriados_from_db, feriados_from_scraping
+from titulospub.dados.transforms.ipca import ipca_dict_from_db
+from titulospub.dados.transforms.ptax import ptax_from_db
+from titulospub.dados.transforms.vna_lft import vna_lft_from_db, vna_lft_from_scraping
 from titulospub.utils.datas import adicionar_dias_uteis
+
+
+def _data_leitura_mercado_sessao(data: pd.Timestamp | str | None) -> pd.Timestamp:
+    """Data efetiva de leitura ANBIMA/BMF: literal, exceto se for hoje → D-1 útil."""
+    hoje = pd.Timestamp.today().normalize()
+    base = hoje if data is None else pd.Timestamp(data).normalize()
+    if base == hoje:
+        return adicionar_dias_uteis(hoje, n_dias=-1)
+    return base
 
 
 class VariaveisMercado:
@@ -29,6 +29,7 @@ class VariaveisMercado:
         self._vna_lft = None
         self._anbimas = None
         self._bmf = None
+        self._ptax = None
 
     @staticmethod
     def _require_data(data, force_update: bool, method: str) -> None:
@@ -49,11 +50,15 @@ class VariaveisMercado:
                 return feriados
 
         print("Carregando feriados via banco local...")
-        feriados = feriados_from_db()
+        feriados = fetch_with_fallback(
+            "feriados",
+            feriados_from_db,
+            feriados_from_scraping,
+        )
         self._feriados = feriados
         save_cache(feriados, "feriados.pkl")
         return feriados
-    
+
     def get_ipca_dict(self, data=None, feriados=None, force_update=False):
 
         if self._ipca_dict is not None and not force_update:
@@ -76,7 +81,7 @@ class VariaveisMercado:
         self._ipca_dict = ipca_dict
         save_cache(ipca_dict, "ipca_dict.pkl")
         return ipca_dict
-    
+
     def get_cdi(self, data=None, force_update=False):
         if self._cdi is not None and not force_update:
             return self._cdi
@@ -93,12 +98,39 @@ class VariaveisMercado:
             data = pd.Timestamp.today().normalize()
 
         print("Carregando CDI via banco local...")
-        cdi = cdi_from_db(data)
+        cdi = fetch_with_fallback(
+            "cdi",
+            cdi_from_db,
+            cdi_from_scraping,
+            data=data,
+        )
 
         self._cdi = cdi
         save_cache(cdi, "cdi.pkl")
         return cdi
-    
+
+    def get_ptax(self, data=None, force_update=False):
+        if self._ptax is not None and not force_update:
+            return self._ptax
+
+        if not force_update:
+            ptax = load_cache("ptax.pkl")
+            if ptax is not None:
+                self._ptax = ptax
+                return ptax
+
+        self._require_data(data, force_update, "get_ptax")
+
+        if data is None:
+            data = pd.Timestamp.today().normalize()
+
+        print("Carregando PTAX via banco local...")
+        ptax = ptax_from_db(data)
+
+        self._ptax = ptax
+        save_cache(ptax, "ptax.pkl")
+        return ptax
+
     def get_vna_lft(self, data=None, force_update=False):
         if self._vna_lft is not None and not force_update:
             return self._vna_lft
@@ -115,13 +147,17 @@ class VariaveisMercado:
             data = pd.Timestamp.today().normalize()
 
         print("Carregando VNA LFT via banco local...")
-        vna_lft = vna_lft_from_db(data)
+        vna_lft = fetch_with_fallback(
+            "vna_lft",
+            vna_lft_from_db,
+            vna_lft_from_scraping,
+            data=data,
+        )
 
         self._vna_lft = vna_lft
         save_cache(vna_lft, "vna_lft.pkl")
         return vna_lft
 
-        
     def get_anbimas(self, data=None, force_update=False):
         if self._anbimas and not force_update:
             return self._anbimas
@@ -135,22 +171,15 @@ class VariaveisMercado:
 
         self._require_data(data, force_update, "get_anbimas")
 
-        if data is None:
-            data = adicionar_dias_uteis(
-                data=pd.Timestamp.today().normalize(),
-                n_dias=-1,
-            )
+        data = _data_leitura_mercado_sessao(data)
 
-        try:
-            print("Realizando scraping ANBIMA...")
-            df_anbima = scrap_anbimas(data=data)
-            anbimas_dict = anbimas(df_anbima)
-        except Exception as e:
-            print(f"[ERRO] Erro ao fazer scraping/parsing ANBIMA: {e}")
-            # Aqui pode colocar fallback via backup_anbimas()
-            anbimas_dict = backup_anbimas()
-            #self._anbimas = {}
-            #return {}
+        print("Carregando ANBIMAs via banco local...")
+        anbimas_dict = fetch_with_fallback(
+            "anbimas",
+            anbimas_from_db,
+            anbimas_from_scraping,
+            data=data,
+        )
 
         save_cache(anbimas_dict, "anbimas.pkl")
         print("[OK] Cache salvo para todos os títulos ANBIMA.")
@@ -171,28 +200,18 @@ class VariaveisMercado:
 
         self._require_data(data, force_update, "get_bmf")
 
-        if data is None:
-            data = adicionar_dias_uteis(
-                data=pd.Timestamp.today().normalize(),
-                n_dias=-1,
-            )
+        data = _data_leitura_mercado_sessao(data)
 
-        try:
-            print("Realizando scraping BMF...")
-            df_bmf = ajustes_bmf(data=data)
-        except Exception as e:
-            try:
-                bmf_dict = scrap_bmf_net()
-                df_bmf = ajustes_bmf_net(bmf_dict=bmf_dict, data=data)
-                print(f"[ERRO] Erro ao fazer scraping/parsing BMF, buscando da net: {e}")
-            except:
-                print(f"[ERRO] Erro ao fazer scraping/parsing BMF, biscando do excel backup: {e}")
-                # Aqui pode colocar fallback via backup_anbimas()
-                df_bmf = backup_bmf()
-            
+        print("Carregando BMF via banco local...")
+        df_bmf = fetch_with_fallback(
+            "bmf",
+            bmf_from_db,
+            bmf_from_scraping,
+            data=data,
+        )
 
         save_cache(df_bmf, "bmf.pkl")
-        print("[OK] Cache salvo para todos os contrados de DI e DAP.")
+        print("[OK] Cache salvo para todos os contratos de DI e DAP.")
 
         self._bmf = df_bmf
         return df_bmf
@@ -200,7 +219,9 @@ class VariaveisMercado:
     def atualizar_tudo(self, data, verbose=True):
         """
         Força a atualização de todas as variáveis de mercado para a data informada.
-        Faz fallback automático em caso de erro.
+
+        ``data`` é usada literalmente em CDI, IPCA, PTAX e VNA. Em ANBIMA e BMF, se ``data``
+        for o dia corrente, a leitura usa D-1 útil; caso contrário, usa a própria data.
         """
         data = pd.Timestamp(data).normalize()
 
@@ -210,11 +231,10 @@ class VariaveisMercado:
         feriados = self.get_feriados(force_update=True)
         self.get_ipca_dict(data=data, feriados=feriados, force_update=True)
         self.get_cdi(data=data, force_update=True)
+        self.get_ptax(data=data, force_update=True)
         self.get_anbimas(data=data, force_update=True)
         self.get_bmf(data=data, force_update=True)
         self.get_vna_lft(data=data, force_update=True)
-        # Futuro:
-        # self.get_curvas(force_update=True)
 
         if verbose:
             print("[OK] Atualização concluída.")
@@ -224,49 +244,13 @@ class VariaveisMercado:
         clear_cache("ipca_dict.pkl")
         clear_cache("cdi.pkl")
         clear_cache("anbimas.pkl")
+        clear_cache("bmf.pkl")
         clear_cache("vna_lft.pkl")
-        # clear_cache("curva_ltn.pkl")
-        # ...
+        clear_cache("ptax.pkl")
         self._feriados = None
         self._ipca_dict = None
         self._cdi = None
         self._anbimas = None
+        self._bmf = None
         self._vna_lft = None
-if __name__ == "__main__":
-    print("Testando orquestrador de variáveis de mercado...")
-    
-    try:
-        vm = VariaveisMercado()
-        
-        print("Testando get_feriados()...")
-        feriados = vm.get_feriados()
-        print(f"[OK] Feriados: {len(feriados)} registros")
-        
-        print("Testando get_ipca_dict()...")
-        ipca_dict = vm.get_ipca_dict()
-        print(f"[OK] IPCA dict: {type(ipca_dict)}")
-        
-        print("Testando get_cdi()...")
-        cdi = vm.get_cdi()
-        print(f"[OK] CDI: {cdi}")
-        
-        print("Testando get_anbimas()...")
-        anbimas = vm.get_anbimas()
-        print(f"[OK] ANBIMAS: {len(anbimas)} tipos de títulos")
-        for titulo, df in anbimas.items():
-            print(f"  - {titulo}: {len(df)} registros")
-        
-        print("Testando get_bmf()...")
-        bmf = vm.get_bmf()
-        print(f"[OK] BMF: {len(bmf)} tipos de contratos")
-        for tipo, df in bmf.items():
-            print(f"  - {tipo}: {len(df)} registros")
-        
-        print("[OK] Orquestrador funcionando corretamente!")
-        
-    except Exception as e:
-        print(f"[ERRO] Erro durante teste: {e}")
-        import traceback
-        traceback.print_exc()
-        # Futuro:
-        # self._curvas = {}
+        self._ptax = None

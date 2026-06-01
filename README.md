@@ -92,6 +92,26 @@ reader = get_reader()  # usa BBDB_DB_PATH do .env
 
 **Python:** o pacote `brazilian_bonds_db` requer **Python ≥ 3.10**.
 
+### Vencimentos e cache de mercado
+
+[`titulospub/dados/vencimentos.py`](titulospub/dados/vencimentos.py) lê listas de vencimentos via `VariaveisMercado.get_anbimas()` e `get_bmf()` (pickles em `cache_data/` ou banco na primeira carga). Para ANBIMA/BMF, chamadas **sem** `data` usam **D-1 útil** quando a sessão é o dia corrente.
+
+| Sintoma | Causa provável | Ação |
+|---------|----------------|------|
+| `GET /vencimentos/*` retorna `[]` | Cache vazio ou gold ausente na data de leitura | Rodar `POST /atualizar-mercado` ou reiniciar a API (lifespan chama `atualizar_tudo`) |
+| Logs `[WARN] … nao encontrado em anbimas_dict` | Chaves do gold diferentes de `LTN`, `LFT`, `NTN-B`, `NTN-F` | Corrigir normalização em [`transforms/anbimas.py`](titulospub/dados/transforms/anbimas.py) |
+| DI sem códigos | `ajustes_bmf` sem tickers `DI1*` | Materializar gold BMF; ver [`transforms/bmf.py`](titulospub/dados/transforms/bmf.py) |
+
+**Verificação local (offline + opcional DB):**
+
+```bash
+pytest tests/titulospub/dados/test_vencimentos_regressao.py tests/api/test_vencimentos_endpoint.py -m regression -v
+python scripts/verify_vencimentos_contrato.py          # fixtures
+python scripts/verify_vencimentos_contrato.py --db     # exige .env e app.db materializado
+```
+
+Baseline de regressão: `tests/fixtures/golden/vencimentos_baseline.json` (`data_base=2026-05-25` — 12/17/15/6 vencimentos e 47 códigos DI).
+
 ---
 
 ## Como rodar em desenvolvimento

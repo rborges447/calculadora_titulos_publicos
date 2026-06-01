@@ -91,12 +91,12 @@ Cada item deve ser um PR pequeno ou commit atômico. Marque `[x]` ao concluir.
 
 ## Fase 7 — Integração com refatoração (quando mexer no orquestrador)
 
-- [ ] **T-048** Introduzir dependência do pacote/lake em `VariaveisMercado` mantendo interface pública
-- [ ] **T-049** Rodar `pytest tests/ -m regression` — corrigir adapter até Camada 1 passar
-- [ ] **T-050** Camada 2 verde — se falhar, investigar normalização vs fórmula
-- [ ] **T-051** Camada 3 verde
-- [ ] **T-052** Remover código morto (scraping/cache) **somente** após 3 suites verdes consecutivas
-- [ ] **T-053** Atualizar Spec 001 status para **Implementado** e registrar desvios (se houver)
+- [x] **T-048** Introduzir dependência do pacote/lake em `VariaveisMercado` mantendo interface pública (Spec 002 T-001/T-002)
+- [x] **T-049** Rodar `pytest tests/ -m regression` — corrigir adapter até Camada 1 passar (Spec 002 T-009–T-015)
+- [x] **T-050** Camada 2 verde — se falhar, investigar normalização vs fórmula
+- [x] **T-051** Camada 3 verde
+- [x] **T-052** Isolar aquisição legada (scraping preservado; fallback opt-in) → Spec 002 Fase 4 (T-021–T-023, T-025)
+- [x] **T-053** Atualizar Spec 001 status — suite + integração DB + isolamento legado (Spec 002 T-024)
 
 ---
 

@@ -1,9 +1,10 @@
 #!/usr/bin/env python
-"""Exporta outputs de VariaveisMercado.get_*() para fixtures de baseline (Spec 001).
+"""Exporta outputs de VariaveisMercado.get_*() para fixtures de baseline (Spec 001/002).
 
-Uso one-shot (requer rede e/ou backup Excel local):
-    python scripts/export_variaveis_mercado_fixtures.py --force
+Uso (requer ``database/app.db`` materializado via ``brazilian_bonds_db``):
+    python scripts/export_variaveis_mercado_fixtures.py --data-base 2026-05-25 --force
 
+Configuração: ``BBDB_DB_PATH`` ou default ``<repo>/database/app.db`` (ver ``db_reader.py``).
 Não altera código de produção — apenas grava pickles em tests/fixtures/.
 """
 
@@ -30,7 +31,7 @@ DEFAULT_DATA_BASE = "2026-05-25"
 DEFAULT_OUTPUT_DIR = REPO_ROOT / "tests" / "fixtures" / "variaveis_mercado"
 
 ANBIMAS_KEYS_REQUIRED = {"LTN", "NTN-B", "NTN-F", "LFT"}
-ANBIMAS_COLUMNS = {"TITULO", "DATA", "VENCIMENTO", "ANBIMA", "PU"}
+ANBIMAS_COLUMNS = {"TITULO", "DATA", "VENCIMENTO", "ANBIMA", "PU", "QTD_OPERADA"}
 BMF_KEYS_REQUIRED = {"DI", "DAP"}
 IPCA_KEYS_REQUIRED = {
     "ULTIMO_MES_IPCA",
@@ -43,7 +44,14 @@ IPCA_KEYS_REQUIRED = {
     "IPCA_USADO",
 }
 
-MANDATORY_FIXTURES = {"feriados.pkl", "ipca_dict.pkl", "cdi.pkl", "anbimas.pkl", "bmf.pkl"}
+MANDATORY_FIXTURES = {
+    "feriados.pkl",
+    "ipca_dict.pkl",
+    "cdi.pkl",
+    "anbimas.pkl",
+    "bmf.pkl",
+    "ptax.pkl",
+}
 OPTIONAL_FIXTURES = {"vna_lft.pkl"}
 
 
@@ -129,6 +137,11 @@ def _validate_vna_lft(vna_lft: float) -> None:
         raise TypeError(f"vna_lft deve ser numérico, recebeu {type(vna_lft)}")
 
 
+def _validate_ptax(ptax: float) -> None:
+    if not isinstance(ptax, (int, float)):
+        raise TypeError(f"ptax deve ser numérico, recebeu {type(ptax)}")
+
+
 def _export_feriados(vm: VariaveisMercado, force_update: bool) -> list:
     feriados = vm.get_feriados(force_update=force_update)
     _validate_feriados(feriados)
@@ -169,11 +182,17 @@ def _try_export_vna_lft(vm: VariaveisMercado, data_base: pd.Timestamp, force_upd
     return vna_lft
 
 
+def _export_ptax(vm: VariaveisMercado, data_base: pd.Timestamp, force_update: bool) -> float:
+    ptax = vm.get_ptax(data=data_base, force_update=force_update)
+    _validate_ptax(ptax)
+    return ptax
+
+
 def _write_manifest(output_dir: Path, data_base: str, fixtures_meta: dict) -> None:
     manifest = {
         "data_base": data_base,
         "generated_at": datetime.now(timezone.utc).isoformat(),
-        "strategy": "VariaveisMercado.get_* (cache -> scraping -> backup)",
+        "strategy": "VariaveisMercado.get_* via brazilian_bonds_db (BBDB_DB_PATH)",
         "fixtures": fixtures_meta,
     }
     manifest_path = output_dir / "manifest.json"
@@ -193,8 +212,8 @@ def _write_readme(output_dir: Path, data_base: str, fixtures_meta: dict) -> None
 
 **Data base de referência:** `{data_base}`
 
-Pickles congelados a partir de `VariaveisMercado.get_*()` (código pré-refatoração).
-Usados pela suite de regressão da Spec 001.
+Pickles congelados a partir de `VariaveisMercado.get_*()` lendo `brazilian_bonds_db`.
+Usados pela suite de regressão da Spec 001 / Spec 002.
 
 ## Regenerar baseline
 
@@ -202,7 +221,7 @@ Usados pela suite de regressão da Spec 001.
 python scripts/export_variaveis_mercado_fixtures.py --data-base {data_base} --force
 ```
 
-Requer rede e/ou arquivos em `titulospub/dados/backup_excel/`.
+Requer `database/app.db` materializado (``BBDB_DB_PATH`` ou default na raiz do repo).
 
 ## Atualização
 
@@ -348,6 +367,23 @@ def export_fixtures(
         except Exception as e:
             fixtures_meta[filename] = {"status": "skipped", "reason": str(e)}
             print(f"[AVISO] {filename} não exportado (opcional): {e}")
+
+    # --- ptax ---
+    filename = "ptax.pkl"
+    if _maybe_skip(filename):
+        print(f"[SKIP] {filename} já existe")
+        fixtures_meta[filename] = {"status": "skipped", "reason": "arquivo existente"}
+    else:
+        try:
+            print(f"Exportando {filename}...")
+            ptax = _export_ptax(vm, data_ts, force_update=force_update)
+            _save_pickle(ptax, output_dir / filename)
+            fixtures_meta[filename] = {"status": "ok", **_describe_value(ptax)}
+            print(f"[OK] {filename}")
+        except Exception as e:
+            errors.append(f"{filename}: {e}")
+            fixtures_meta[filename] = {"status": "error", "reason": str(e)}
+            print(f"[ERRO] {filename}: {e}")
 
     _write_manifest(output_dir, data_base, fixtures_meta)
     _write_readme(output_dir, data_base, fixtures_meta)

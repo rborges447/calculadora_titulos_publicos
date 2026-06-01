@@ -12,8 +12,6 @@ from typing import Optional, Union
 
 import pandas as pd
 
-from titulospub.utils.datas import adicionar_dias_uteis
-
 # Caminho para arquivo de controle de atualização
 CONTROLE_ATUALIZACAO_FILE = Path("api/.ultima_atualizacao.json")
 
@@ -23,11 +21,12 @@ def resolver_data_mercado(data: str | None = None) -> pd.Timestamp:
     Resolve a data de referência para atualização de mercado.
 
     Se ``data`` for informada (YYYY-MM-DD), usa essa data normalizada.
-    Caso contrário, usa D-1 útil a partir de hoje (mesma regra de get_anbimas/get_bmf).
+    Caso contrário, usa o dia corrente. ANBIMA/BMF aplicam D-1 útil internamente
+    quando essa data for hoje.
     """
     if data is not None:
         return pd.Timestamp(data).normalize()
-    return adicionar_dias_uteis(pd.Timestamp.today().normalize(), n_dias=-1)
+    return pd.Timestamp.today().normalize()
 
 
 def precisa_atualizar_mercado() -> bool:

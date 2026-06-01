@@ -1,71 +1,125 @@
-#from titulospub.scraping.anbima_scraping import scrap_anbimas
+"""Normalização de ANBIMAs a partir do gold ``mercado_com_liquidacoes`` do bbdb."""
+
+from __future__ import annotations
+
 import pandas as pd
 
-def anbimas(anbima_df):
-    """"
-    Retorna um dataframe para cada titulo com as apenas com as colunas que importam
-    """ 
-    #Deixando o df apenas com as colunas necessarias
-    colunas = ["Titulo", "Data Referencia", "Data Vencimento", "Tx. Indicativas", "PU"]
-    anbima_tratado_df = anbima_df[colunas].copy()
+ANBIMAS_DB_COLUMN_MAP = {
+    "tipo_titulo": "TITULO",
+    "data_referencia": "DATA",
+    "data_vencimento": "VENCIMENTO",
+    "taxa_anbima": "ANBIMA",
+    "pu": "PU",
+    "qtd_titulos": "QTD_OPERADA",
+}
 
-    #Transformando as colunas de data para o formato de data do pandas
-    anbima_tratado_df["Data Referencia"] = pd.to_datetime(anbima_tratado_df["Data Referencia"], format="%Y%m%d")
-    anbima_tratado_df["Data Vencimento"] = pd.to_datetime(anbima_tratado_df["Data Vencimento"], format="%Y%m%d")
+ANBIMAS_CONTRACT_COLS = [
+    "TITULO",
+    "DATA",
+    "VENCIMENTO",
+    "ANBIMA",
+    "PU",
+    "QTD_OPERADA",
+]
 
-    #Renomeando as colunas
-    anbima_tratado_df.rename(columns={"Titulo":"TITULO","Data Referencia":"DATA" ,
-                                      "Data Vencimento": "VENCIMENTO","Tx. Indicativas":"ANBIMA"}, inplace=True)
 
-    #convertendo as colunas de data para float
-    anbima_tratado_df["ANBIMA"] = (
-        anbima_tratado_df["ANBIMA"]
-        .astype(str)  # Garante que são strings
-        .str.replace(r"\.", "", regex=True)  # Remove separadores de milhar
-        .str.replace(r",", ".", regex=True)  # Troca vírgula decimal por ponto
-    ).astype(float)
+def transform_anbimas(df: pd.DataFrame) -> dict[str, pd.DataFrame]:
+    """Gold ``mercado_com_liquidacoes`` → contrato ``dict[str, DataFrame]``."""
+    if df is None or df.empty:
+        raise ValueError("anbimas: DataFrame vazio")
 
-    #convertendo as colunas de data para float
-    anbima_tratado_df["PU"] = (
-        anbima_tratado_df["PU"]
-        .astype(str)  # Garante que são strings
-        .str.replace(r"\.", "", regex=True)  # Remove separadores de milhar
-        .str.replace(r",", ".", regex=True)  # Troca vírgula decimal por ponto
-    ).astype(float)
+    missing = set(ANBIMAS_DB_COLUMN_MAP.keys()) - set(df.columns)
+    if missing:
+        raise ValueError(
+            f"anbimas: colunas ausentes no gold: {sorted(missing)}; "
+            f"colunas: {list(df.columns)}"
+        )
 
-    #Criando um dicionario para os dataframes referentes a cada titulo
-    dfs_dict = {}
+    work = df.loc[df["taxa_anbima"].notna() & df["pu"].notna(), list(ANBIMAS_DB_COLUMN_MAP.keys())].copy()
+    if work.empty:
+        raise ValueError("anbimas: nenhuma linha de mercado secundário após filtro")
 
-    for titulo in anbima_tratado_df["TITULO"].unique():
-        dfs_dict[titulo] = (anbima_tratado_df[anbima_tratado_df["TITULO"] == titulo]).reset_index()
-        dfs_dict[titulo].drop(columns="index", inplace=True)
+    work = work.rename(columns=ANBIMAS_DB_COLUMN_MAP)
+    work["DATA"] = pd.to_datetime(work["DATA"]).dt.normalize()
+    work["VENCIMENTO"] = pd.to_datetime(work["VENCIMENTO"]).dt.normalize()
+    work["TITULO"] = work["TITULO"].astype(str)
+    work["ANBIMA"] = work["ANBIMA"].astype(float)
+    work["PU"] = work["PU"].astype(float)
+    work["QTD_OPERADA"] = work["QTD_OPERADA"].astype(float)
+    work = work[ANBIMAS_CONTRACT_COLS]
 
+    dfs_dict: dict[str, pd.DataFrame] = {}
+    for titulo in work["TITULO"].unique():
+        dfs_dict[titulo] = (
+            work[work["TITULO"] == titulo].reset_index(drop=True)
+        )
     return dfs_dict
 
 
-if __name__ == "__main__":
-    print("🔄 Testando processamento ANBIMA...")
-    
-    try:
-        from titulospub.dados.transforms.backup import backup_anbimas
-        
-        print("📊 Carregando dados ANBIMA de backup...")
-        anbimas_data = backup_anbimas()
-        print(f"✅ Dados carregados: {len(anbimas_data)} tipos de títulos")
-        
-        print("📊 Processando dados ANBIMA...")
-        processed = anbimas(anbimas_data)
-        print(f"✅ Dados processados: {len(processed)} tipos de títulos")
-        
-        for titulo, df in processed.items():
-            print(f"  - {titulo}: {len(df)} registros")
-            if len(df) > 0:
-                print(f"    Colunas: {list(df.columns)}")
-                print(f"    Primeiro registro: {df.iloc[0].to_dict()}")
-        
-        print("✅ Processamento ANBIMA funcionando corretamente!")
-        
-    except Exception as e:
-        print(f"❌ Erro durante teste: {e}")
-        import traceback
-        traceback.print_exc()
+def anbimas_from_db(data: pd.Timestamp | str) -> dict[str, pd.DataFrame]:
+    from titulospub.dados.db_reader import get_reader
+
+    data_str = pd.Timestamp(data).strftime("%Y-%m-%d")
+    df = get_reader().mercado_com_liquidacoes.fetch_on(data_str)
+    if df is None or df.empty:
+        raise ValueError(
+            f"anbimas: sem dados no banco para data={data_str}. "
+            "Execute bbdb.update e materialize mercado_com_liquidacoes até essa data."
+        )
+    return transform_anbimas(df)
+
+
+def anbimas_from_scraping(data: pd.Timestamp | str) -> dict[str, pd.DataFrame]:
+    """LEGACY_ACQUISITION — mercado ANBIMA via download TXT (rede)."""
+    from titulospub.scraping.anbima_scraping import scrap_anbimas
+
+    return transform_anbimas_scraping(scrap_anbimas(pd.Timestamp(data).normalize()))
+
+
+def transform_anbimas_scraping(anbima_df: pd.DataFrame) -> dict[str, pd.DataFrame]:
+    """Normaliza DataFrame cru do arquivo ANBIMA (LEGACY_ACQUISITION)."""
+    colunas = ["Titulo", "Data Referencia", "Data Vencimento", "Tx. Indicativas", "PU"]
+    anbima_tratado_df = anbima_df[colunas].copy()
+
+    anbima_tratado_df["Data Referencia"] = pd.to_datetime(
+        anbima_tratado_df["Data Referencia"], format="%Y%m%d"
+    )
+    anbima_tratado_df["Data Vencimento"] = pd.to_datetime(
+        anbima_tratado_df["Data Vencimento"], format="%Y%m%d"
+    )
+
+    anbima_tratado_df.rename(
+        columns={
+            "Titulo": "TITULO",
+            "Data Referencia": "DATA",
+            "Data Vencimento": "VENCIMENTO",
+            "Tx. Indicativas": "ANBIMA",
+        },
+        inplace=True,
+    )
+
+    anbima_tratado_df["ANBIMA"] = (
+        anbima_tratado_df["ANBIMA"]
+        .astype(str)
+        .str.replace(r"\.", "", regex=True)
+        .str.replace(r",", ".", regex=True)
+    ).astype(float)
+
+    anbima_tratado_df["PU"] = (
+        anbima_tratado_df["PU"]
+        .astype(str)
+        .str.replace(r"\.", "", regex=True)
+        .str.replace(r",", ".", regex=True)
+    ).astype(float)
+
+    dfs_dict: dict[str, pd.DataFrame] = {}
+    for titulo in anbima_tratado_df["TITULO"].unique():
+        dfs_dict[titulo] = (
+            anbima_tratado_df[anbima_tratado_df["TITULO"] == titulo]
+            .reset_index(drop=True)
+        )
+    return dfs_dict
+
+
+# Alias legado (scraping)
+anbimas = transform_anbimas_scraping

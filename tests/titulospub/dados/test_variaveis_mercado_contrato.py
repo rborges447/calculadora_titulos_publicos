@@ -63,6 +63,7 @@ def test_get_anbimas_chaves_e_colunas(vm_real):
         assert pd.api.types.is_datetime64_any_dtype(df["VENCIMENTO"])
         assert pd.api.types.is_numeric_dtype(df["ANBIMA"])
         assert pd.api.types.is_numeric_dtype(df["PU"])
+        assert pd.api.types.is_numeric_dtype(df["QTD_OPERADA"])
 
 
 @pytest.mark.regression
@@ -121,7 +122,53 @@ def test_get_cdi_force_update_sem_data_levanta(vm_real):
         vm_real.get_cdi(force_update=True)
 
 
-@pytest.mark.skip(reason="Adapter lake ainda não implementado — Spec Fase 7")
+@pytest.mark.regression
+def test_get_ptax_retorna_float_igual_baseline(vm_real):
+    ptax = vm_real.get_ptax(data=DATA_BASE)
+    assert isinstance(ptax, float)
+    assert ptax == pytest.approx(load_fixture("ptax"))
+
+
+@pytest.mark.regression
+def test_get_ptax_force_update_sem_data_levanta(vm_real):
+    with pytest.raises(ValueError, match="data"):
+        vm_real.get_ptax(force_update=True)
+
+
+@pytest.mark.slow
+@pytest.mark.regression
+def test_get_ptax_via_lake_adapter_igual_baseline():
+    """Valida adapter DB vs baseline (requer ``database/app.db`` materializado)."""
+    from pathlib import Path
+
+    from titulospub.dados.db_reader import get_db_path
+    from titulospub.dados.transforms.ptax import ptax_from_db
+
+    if not Path(get_db_path()).exists():
+        pytest.skip("database/app.db ausente")
+
+    assert ptax_from_db(DATA_BASE) == pytest.approx(load_fixture("ptax"))
+
+
+@pytest.mark.slow
 @pytest.mark.regression
 def test_get_bmf_via_lake_adapter_igual_baseline():
-    """Placeholder T-027: validar adapter lake quando refatoração existir."""
+    """Valida adapter DB vs baseline (requer ``database/app.db`` materializado)."""
+    from pathlib import Path
+
+    from titulospub.dados.db_reader import get_db_path
+    from titulospub.dados.transforms.bmf import bmf_from_db
+
+    if not Path(get_db_path()).exists():
+        pytest.skip("database/app.db ausente")
+
+    expected = load_fixture("bmf")
+    actual = bmf_from_db(DATA_BASE)
+
+    for nome in BMF_KEYS:
+        pd.testing.assert_frame_equal(
+            actual[nome],
+            expected[nome],
+            check_exact=False,
+            rtol=RTOL,
+        )

@@ -18,3 +18,10 @@ def feriados_from_db() -> list:
     from titulospub.dados.db_reader import get_reader
 
     return transform_feriados(get_reader().feriados.fetch_all())
+
+
+def feriados_from_scraping() -> list:
+    """LEGACY_ACQUISITION — lista de feriados via ANBIMA (rede)."""
+    from titulospub.scraping.anbima_scraping import scrap_feriados
+
+    return [pd.Timestamp(d).normalize() for d in scrap_feriados()]

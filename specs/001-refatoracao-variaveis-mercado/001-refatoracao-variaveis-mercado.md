@@ -4,7 +4,7 @@
 |--------------|--------------------------------------------|
 | **ID**       | SPEC-001                                   |
 | **Título**   | Fluxo de testes automatizados para refatoração de `VariaveisMercado` |
-| **Status**   | Proposta                                   |
+| **Status**   | Implementado (suite, integração DB, scraping isolado para backup/fallback) |
 | **Autor**    | Rafael                                     |
 | **Criado**   | 2026-05-26                                 |
 | **Escopo**   | `titulospub`, `api`, `dash_app` (indireto) |

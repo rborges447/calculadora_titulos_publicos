@@ -2,8 +2,8 @@
 
 **Data base de referência:** `2026-05-25`
 
-Pickles congelados a partir de `VariaveisMercado.get_*()` (código pré-refatoração).
-Usados pela suite de regressão da Spec 001.
+Pickles congelados a partir de `VariaveisMercado.get_*()` lendo `brazilian_bonds_db`.
+Usados pela suite de regressão da Spec 001 / Spec 002.
 
 ## Regenerar baseline
 
@@ -11,7 +11,7 @@ Usados pela suite de regressão da Spec 001.
 python scripts/export_variaveis_mercado_fixtures.py --data-base 2026-05-25 --force
 ```
 
-Requer rede e/ou arquivos em `titulospub/dados/backup_excel/`.
+Requer `database/app.db` materializado (``BBDB_DB_PATH`` ou default na raiz do repo).
 
 ## Atualização
 

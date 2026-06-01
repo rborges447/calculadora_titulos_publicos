@@ -149,24 +149,29 @@ Cada task abaixo troca **origem + tratamento** dos dados. **Não** troca o contr
 
 ### T-013 — ANBIMAs (mercado com liquidações)
 
-- [ ] **T-013** Refatorar `get_anbimas`
+- [x] **T-013** Refatorar `get_anbimas`
 
-**Fonte:** `reader.mercado_com_liquidacoes.fetch_on(data)`
+**Fonte:** `reader.mercado_com_liquidacoes.fetch_on(data)` — join full outer mercado + liquidações
 
-**Tratamento** *(preencher na implementação):*
-- [ ] Mapear DataFrame bruto → formato esperado por `anbimas()` ou substituir `anbimas()` por normalizador DB-native
-- [ ] Garantir dict com chaves **`LTN`, `NTN-B`, `NTN-F`, `LFT`** (nomes exatos, incluindo hífen)
-- [ ] Colunas finais: **`TITULO`, `DATA`, `VENCIMENTO`, `ANBIMA`, `PU`** (`datetime64` + numéricos)
-- [ ] Replicar regra de `data` (hoje: D-1 útil quando `data is None` — **obrigatório** para compatibilidade com `vencimentos.py`)
-- [ ] Remover `scrap_anbimas` / `backup_anbimas` deste método
+**Tratamento:**
+- [`transforms/anbimas.py`](../../titulospub/dados/transforms/anbimas.py) — `ANBIMAS_DB_COLUMN_MAP` + `transform_anbimas(df)`:
+  - `tipo_titulo`→`TITULO`, `data_referencia`→`DATA`, `data_vencimento`→`VENCIMENTO`, `taxa_anbima`→`ANBIMA`, `pu`→`PU`, `qtd_titulos`→`QTD_OPERADA`
+  - Filtro: linhas com `taxa_anbima` e `pu` não nulos (exclui só liquidação)
+  - Casts: datas `datetime64` normalizado; `ANBIMA`, `PU`, `QTD_OPERADA` float; `TITULO` str
+  - Split por `TITULO` → `dict[str, DataFrame]`
+- Leitura encapsulada em `anbimas_from_db(data)` via `get_reader().mercado_com_liquidacoes.fetch_on`
+- `QTD_OPERADA` presente no DataFrame; **sem uso** em `core`/API/`vencimentos.py` nesta task
+- `force_update=True` exige `data`; leitura via `_data_leitura_mercado_sessao`: data **literal** se ≠ hoje; **D-1 útil** se `data` for hoje ou `None`
+- Fallback: nenhum (scraping/backup removidos deste método); `ValueError` se `fetch_on` vazio
+- Baseline `anbimas.pkl` regenerado com 6 colunas (`2026-05-25`); 5 colunas legadas com mesmos valores
 
 **Contrato (DEVE manter) — checklist `vencimentos.py`:**
-- [ ] `get_anbimas()["LTN"|"LFT"|"NTN-B"|"NTN-F"]["VENCIMENTO"]` existe e é iterável
-- [ ] `get_vencimentos_ltn()` == golden `vencimentos_baseline.json` → `"ltn"` (12 itens)
-- [ ] `get_vencimentos_lft()` == golden → `"lft"` (17 itens)
-- [ ] `get_vencimentos_ntnb()` == golden → `"ntnb"` (15 itens)
-- [ ] `get_vencimentos_ntnf()` == golden → `"ntnf"` (6 itens)
-- [ ] `test_get_anbimas_*` Camada 1 verde (`assert_frame_equal` vs pickles)
+- [x] `get_anbimas()["LTN"|"LFT"|"NTN-B"|"NTN-F"]["VENCIMENTO"]` existe e é iterável
+- [x] `get_vencimentos_ltn()` == golden → `"ltn"` (12 itens)
+- [x] `get_vencimentos_lft()` == golden → `"lft"` (17 itens)
+- [x] `get_vencimentos_ntnb()` == golden → `"ntnb"` (15 itens)
+- [x] `get_vencimentos_ntnf()` == golden → `"ntnf"` (6 itens)
+- [x] `test_get_anbimas_*` Camada 1 verde (`assert_frame_equal` vs pickles)
 
 **Verificação:** testes Camada 1 ANBIMA + **`test_vencimentos_regressao`** + **`test_vencimentos_endpoint`** + suite regression.
 
@@ -174,21 +179,26 @@ Cada task abaixo troca **origem + tratamento** dos dados. **Não** troca o contr
 
 ### T-014 — BMF (ajustes DI/DAP)
 
-- [ ] **T-014** Refatorar `get_bmf`
+- [x] **T-014** Refatorar `get_bmf`
 
-**Fonte:** `reader.ajustes_bmf.fetch_on(data)`
+**Fonte:** `reader.ajustes_bmf.fetch_on(data)` — gold `ajustes_bmf` (colunas `data_referencia`, `ticker`, `data_vencimento`, `taxa_ajuste`, …)
 
-**Tratamento** *(preencher na implementação):*
-- [ ] Mapear para dict `{DI: df, DAP: df}` com colunas **`DATA`, `DATA_VENCIMENTO`, `<DI|DAP>`, `ADJ`**
-- [ ] Coluna de contrato DI deve chamar-se **`DI`** (não `TckrSymb` ou ticker bruto)
-- [ ] Reutilizar lógica de [`transforms/bmf.py`](../../titulospub/dados/transforms/bmf.py) onde fizer sentido ou reimplementar sobre schema do DB
-- [ ] Ordenação por `DATA_VENCIMENTO` ascendente
-- [ ] Remover `ajustes_bmf` scraping / `scrap_bmf_net` / `backup_bmf` deste método
+**Tratamento:**
+- [`transforms/bmf.py`](../../titulospub/dados/transforms/bmf.py) — `BMF_DB_BASE_MAP` + `transform_bmf(df)`:
+  - `data_referencia`→`DATA`, `data_vencimento`→`DATA_VENCIMENTO`, `taxa_ajuste`→`ADJ`
+  - Split por prefixo em `ticker`: `DI1`→chave dict `DI` (coluna renomeada para **`DI`**), `DAP`→chave `DAP` (coluna **`DAP`**)
+  - Casts: datas `datetime64` normalizado; `ADJ` float; símbolo `str`
+  - Ordenação por `DATA_VENCIMENTO` ascendente; colunas finais `DATA`, `DATA_VENCIMENTO`, `<DI|DAP>`, `ADJ`
+- Leitura encapsulada em `bmf_from_db(data)` via `get_reader().ajustes_bmf.fetch_on`
+- Scraping legado mantido como `transform_bmf_scraping` / alias `ajustes_bmf` (fora do orquestrador)
+- `force_update=True` exige `data`; leitura via `_data_leitura_mercado_sessao` (literal se ≠ hoje; D-1 útil se hoje/`None`)
+- Fallback: nenhum (`ajustes_bmf` scraping / `scrap_bmf_net` / `backup_bmf` removidos de `get_bmf`)
+- Validado: `bmf_from_db("2026-05-25")` ≡ baseline `bmf.pkl` (47 DI, 22 DAP)
 
 **Contrato (DEVE manter) — checklist `vencimentos.py`:**
-- [ ] `get_bmf()["DI"]["DI"]` existe (coluna com mesmo nome da chave do dict)
-- [ ] `len(get_codigos_di_disponiveis()) == 47` (baseline `vencimentos_baseline.json`)
-- [ ] `test_get_bmf_*` Camada 1 verde (`assert_frame_equal` vs pickles)
+- [x] `get_bmf()["DI"]["DI"]` existe (coluna com mesmo nome da chave do dict)
+- [x] `len(get_codigos_di_disponiveis()) == 47` (baseline `vencimentos_baseline.json`)
+- [x] `test_get_bmf_*` Camada 1 verde (`assert_frame_equal` vs pickles)
 
 **Verificação:** testes Camada 1 BMF + **`test_vencimentos_regressao`** (contagem DI) + hedge DI nos títulos + suite regression.
 
@@ -196,53 +206,54 @@ Cada task abaixo troca **origem + tratamento** dos dados. **Não** troca o contr
 
 ### T-015 — PTAX (novo)
 
-- [ ] **T-015** Implementar `get_ptax(data=None, force_update=False)`
+- [x] **T-015** Implementar `get_ptax(data=None, force_update=False)`
 
-**Fonte:** `reader.ptax.fetch_on(data)`
+**Fonte:** `reader.ptax.fetch_on(data)` — 1 linha do gold `PTAX` (colunas `data_referencia`, `ptax_compra`, `ptax_venda`)
 
-**Tratamento** *(preencher na implementação):*
-- [ ] Definir tipo de retorno (ex.: `dict` com `ptax_compra`/`ptax_venda`, ou `float` único)
-- [ ] Documentar consumidores futuros (nenhum hoje — não quebrar regressão existente)
-- [ ] Adicionar teste de contrato mínimo em `tests/titulospub/dados/` (opcional nesta task se sem consumidor)
-- [ ] Incluir em `atualizar_tudo(data)` se aplicável
+**Tratamento:**
+- [`transforms/ptax.py`](../../titulospub/dados/transforms/ptax.py) — `transform_ptax(df)`: extrai `float(df["ptax_venda"].iloc[0])`; `data_referencia` e `ptax_compra` são metadados (fora do contrato)
+- Leitura encapsulada em `ptax_from_db(data)` via `get_reader().ptax.fetch_on`
+- `force_update=True` exige `data` (`_require_data`); cache miss sem `data` usa `pd.Timestamp.today().normalize()` (mesmo padrão de CDI)
+- Fallback: nenhum; `ValueError` se `fetch_on` não retornar linha
+- Incluído em `atualizar_tudo(data)` com data literal (sem D-1)
 
-**Verificação:** suite regression existente continua verde; novo teste de contrato se criado.
+**Contrato:** retorno `float` = PTAX **venda**; valor baseline `ptax.pkl` = **5.0072** para `data=2026-05-25`.
+
+**Consumidores:** nenhum em `core`/API/`vencimentos.py` nesta task.
+
+**Verificação:** `test_get_ptax_retorna_float_igual_baseline` + `test_get_ptax_force_update_sem_data_levanta` + suite regression.
 
 ---
 
-### T-016 — Leilões (novo)
+### T-016 — Leilões (novo) — **CANCELADA**
 
-- [ ] **T-016** Implementar `get_leiloes(data=None, force_update=False)`
-
-**Fonte:** `reader.leiloes.fetch_on(data)`
-
-**Tratamento** *(preencher na implementação):*
-- [ ] Definir tipo de retorno (ex.: `pd.DataFrame` com colunas documentadas)
-- [ ] Documentar consumidores futuros
-- [ ] Adicionar teste de contrato mínimo (opcional)
-- [ ] Incluir em `atualizar_tudo(data)` se aplicável
-
-**Verificação:** suite regression existente continua verde; novo teste de contrato se criado.
+- [~] **T-016** ~~Implementar `get_leiloes`~~ — **fora de escopo** desta spec; sem `get_leiloes` no orquestrador nem em `atualizar_tudo`. Pode ser retomada em spec futura se houver consumidor.
 
 ---
 
 ## Fase 3 — Testes e baseline
 
-- [ ] **T-017** Atualizar `patch_variaveis_mercado_io` / fixtures se mocks precisarem simular `reader` em vez de scraping
-- [ ] **T-018** Rodar `scripts/export_variaveis_mercado_fixtures.py` pós-refatoração — comparar diff; atualizar pickles **somente** se normalização intencional
-- [ ] **T-019** Rodar `scripts/export_golden_calculos.py --force` e `export_golden_api.py --force` — validar se golden permanecem estáveis com `data=2026-05-25`
-- [ ] **T-020** Marcar Spec 001 Fase 7 (T-048–T-053) como concluída
+- [x] **T-017** Atualizar `patch_variaveis_mercado_io` / fixtures se mocks precisarem simular `reader` em vez de scraping
+  - `patch_variaveis_mercado_io` bloqueia `*_from_db`; pickles via `load_cache` mockado
+  - `VariaveisMercadoFixture.get_ptax()`; `export_variaveis_mercado_fixtures.py` documentado para `BBDB_DB_PATH`
+- [x] **T-018** Rodar `scripts/export_variaveis_mercado_fixtures.py` pós-refatoração — comparar diff; atualizar pickles **somente** se normalização intencional
+  - Export `--force` 2026-05-25; manifest/README atualizados; `anbimas.pkl` regenerado do DB (contrato vencimentos preservado)
+- [x] **T-019** Rodar `scripts/export_golden_calculos.py --force` e `export_golden_api.py --force` — validar se golden permanecem estáveis com `data=2026-05-25`
+  - Golden JSON estáveis; apenas `golden/README.md` atualizado
+- [x] **T-020** Marcar Spec 001 Fase 7 (T-048–T-051 concluídas; T-052 pendente Fase 4; T-053 parcial)
 
 ---
 
-## Fase 4 — Limpeza (somente após Fase 2 + Fase 3 verdes)
+## Fase 4 — Isolamento legado e fallback (sem remover scraping)
 
-- [ ] **T-021** Remover imports de scraping não usados do orquestrador
-- [ ] **T-022** Deprecar/remover escrita de pickles em `cache_data/` (manter `limpar_cache` compatível)
-- [ ] **T-023** Remover ou isolar módulos `titulospub/scraping/*` não referenciados (PR separado, revisão manual)
-- [ ] **T-024** Atualizar Spec 002 status para **Implementado**; registrar desvios vs baseline
+- [x] **T-021** Fronteira produção — `orquestrador`, `api/`, `core/`, `vencimentos.py` sem import de `titulospub.scraping` (scraping só em transforms/resilience/scripts)
+- [x] **T-022** Cache runtime — `VM_PERSIST_DISK_CACHE` em [`cache.py`](../../titulospub/dados/cache.py); memória no orquestrador inalterada; `cache_data/` é acelerador opcional
+- [x] **T-023** Isolar legado — [`scraping/README.md`](../../titulospub/scraping/README.md), [`dados/backup/`](../../titulospub/dados/backup/), `*_from_scraping` + `LEGACY_ACQUISITION`, paths via `BACKUP_EXCEL_DIR`
+- [x] **T-024** Spec 002 status **Implementado**; scraping preservado para backup/fallback
+- [x] **T-025** [`resilience.py`](../../titulospub/dados/resilience.py) + `VM_ALLOW_SCRAPING_FALLBACK` no orquestrador (CDI, feriados, VNA, ANBIMA, BMF; IPCA/PTAX só DB)
+- [x] **T-026** [`scripts/export_backup_via_scraping.py`](../../scripts/export_backup_via_scraping.py) — snapshot operacional em `backup_snapshots/`
 
-> **Gate T-021–T-024:** 3 execuções consecutivas de `pytest tests/ -m regression` verdes antes de merge.
+> **Gate T-021–T-026:** 3 execuções consecutivas de `pytest tests/ -m "regression and not slow"` verdes antes de merge.
 
 ---
 
@@ -270,14 +281,15 @@ Fase 0 → Fase 1 (data/atualizar_tudo) → Fase 2:
   → T-013 anbimas
   → T-014 bmf
   → T-015 ptax
-  → T-016 leiloes
-→ Fase 3 (baseline/testes)
-→ Fase 4 (limpeza)
+  (T-016 leilões — cancelada)
+→ Fase 3 (baseline/testes) ✓
+→ Fase 4 (isolamento + fallback) ✓
 ```
 
 **Checkpoint 1:** Fase 1 completa — `atualizar_tudo(data)` + API, suite verde.  
-**Checkpoint 2:** Fase 2 completa — todos os `get_*` no DB, suite verde.  
-**Checkpoint 3:** Fase 4 — scraping removido, Spec 002 fechada.
+**Checkpoint 2:** Fase 2 completa — todos os `get_*` migrados no DB (sem leilões), suite verde.  
+**Checkpoint 3:** Fase 3 completa — baseline/golden validados, Spec 001 Fase 7 parcial.  
+**Checkpoint 4:** Fase 4 completa — scraping isolado, fallback opt-in, Spec 002 fechada.
 
 ---
 
@@ -286,8 +298,8 @@ Fase 0 → Fase 1 (data/atualizar_tudo) → Fase 2:
 | Spec 001 | Spec 002 |
 |----------|----------|
 | T-048 Introduzir dependência lake/DB | T-001, T-002 |
-| T-049 Camada 1 verde | T-009–T-016 (cada task) |
+| T-049 Camada 1 verde | T-009–T-015 (T-016 cancelada) |
 | T-050 Camada 2 verde | idem |
 | T-051 Camada 3 verde | T-004–T-008 + idem |
-| T-052 Remover código morto | T-021–T-023 |
+| T-052 Isolar aquisição legada | T-021–T-023, T-025 |
 | T-053 Atualizar spec | T-024, T-020 |

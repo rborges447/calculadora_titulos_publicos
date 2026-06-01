@@ -27,3 +27,10 @@ def cdi_from_db(data: pd.Timestamp | str) -> float:
             "Execute bbdb.update e materialize o gold cdi até essa data."
         )
     return transform_cdi(df)
+
+
+def cdi_from_scraping(data: pd.Timestamp | str | None = None) -> float:
+    """LEGACY_ACQUISITION — CDI estimado ANBIMA (rede; ``data`` ignorado)."""
+    from titulospub.scraping.anbima_scraping import scrap_cdi
+
+    return float(scrap_cdi())

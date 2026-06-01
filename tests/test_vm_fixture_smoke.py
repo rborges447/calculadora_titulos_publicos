@@ -31,6 +31,10 @@ def test_vm_fixo_vna_lft_bate_baseline(vm_fixo):
     assert vm_fixo.get_vna_lft() == pytest.approx(19069.075129)
 
 
+def test_vm_fixo_ptax_bate_baseline(vm_fixo):
+    assert vm_fixo.get_ptax() == pytest.approx(5.0072)
+
+
 def test_vm_fixo_anbimas_retorna_copia_independente(vm_fixo):
     anbimas_a = vm_fixo.get_anbimas()
     anbimas_b = vm_fixo.get_anbimas()

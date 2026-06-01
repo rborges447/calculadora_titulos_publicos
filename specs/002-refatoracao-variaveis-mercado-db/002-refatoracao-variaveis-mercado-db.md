@@ -4,7 +4,7 @@
 |--------------|-------|
 | **ID**       | SPEC-002 |
 | **Título**   | Refatorar `VariaveisMercado` para ler dados via `brazilian_bonds_db` |
-| **Status**   | Proposta |
+| **Status**   | Implementado |
 | **Autor**    | Rafael |
 | **Criado**   | 2026-05-29 |
 | **Depende de** | [Spec 001](../001-refatoracao-variaveis-mercado/001-refatoracao-variaveis-mercado.md) (suite de regressão verde) |
@@ -67,7 +67,7 @@ reader.leiloes.fetch_on("2026-05-25")   # novo
 3. **Uma variável por PR/task** — cada `get_*` é refatorado isoladamente; ao final de cada task, `pytest tests/ -m regression` deve passar.
 4. **Tratamento explícito por variável** — o mapeamento bruto do `reader` → formato consumido pelo sistema é **documentado na task** correspondente em [`tasks.md`](tasks.md).
 5. **`data` explícita em atualizações forçadas** — `atualizar_tudo(data)` passa a exigir data; todos os `get_*` com `force_update=True` usam essa data (não `today()` implícito).
-6. **Scraping legado** — removido **somente** após todas as variáveis migradas e suite verde por 3 execuções consecutivas (espelha Spec 001 T-052).
+6. **Scraping legado** — **isolado** em `titulospub/scraping/` (não removido); fallback opt-in via `VM_ALLOW_SCRAPING_FALLBACK` quando o DB estiver indisponível.
 
 ---
 
@@ -167,7 +167,10 @@ Se o adapter retornar chaves erradas, colunas ausentes ou universo incompleto, `
 | `force_update=True` | **`data` obrigatória** (via argumento do `get_*` ou propagada por `atualizar_tudo(data)`) |
 | `atualizar_tudo(data)` | **`data` obrigatória**; repassa a mesma data a todos os `get_*` dependentes de data |
 | `get_feriados` | Não usa `data` na leitura do DB; cache independente de data |
-| `get_anbimas()` / `get_bmf()` chamados **sem** `data` (ex.: `vencimentos.py`) | **Manter** regra atual: D-1 útil a partir de `today()` quando `data is None`, salvo decisão documentada na task T-013/T-014 |
+| `get_anbimas()` / `get_bmf()` — data informada **≠ hoje** | Usa a **própria data** no `fetch_on` / scraping |
+| `get_anbimas()` / `get_bmf()` — data = **hoje** ou `data is None` | **D-1 útil** (`_data_leitura_mercado_sessao`) |
+| `get_cdi()` / `get_ipca_dict()` / `get_vna_lft()` | Data literal (ou `today()` se `data is None`); **sem** D-1 automático |
+| `resolver_data_mercado` (API) | Retorna data informada ou `today()`; D-1 de ANBIMA/BMF só dentro do orquestrador |
 
 ---
 
@@ -256,12 +259,12 @@ Cada task em [`tasks.md`](tasks.md) só está concluída quando:
 
 ### 8.1 Checkpoint final (Spec 002 completa)
 
-- [ ] Todos os `get_*` existentes leem do DB (scraping não é caminho principal).
-- [ ] `get_ptax` e `get_leiloes` expostos e documentados.
-- [ ] `atualizar_tudo(data)` obrigatório; API repassa data corretamente.
-- [ ] `pytest tests/ -m regression` verde.
-- [ ] Spec 001 Fase 7 (T-048–T-053) marcada.
-- [ ] Scraping/cache legado removido em PR dedicado (T-014), após 3 suites verdes.
+- [x] Todos os `get_*` existentes leem do DB (scraping não é caminho principal).
+- [x] `get_ptax` exposto e documentado; **`get_leiloes` cancelado** (fora de escopo).
+- [x] `atualizar_tudo(data)` obrigatório; API repassa data corretamente.
+- [x] `pytest tests/ -m regression` verde (Fase 3).
+- [x] Spec 001 Fase 7 parcial (T-048–T-051; T-052–T-053 na Fase 4).
+- [x] Scraping isolado para backup/fallback (T-021–T-026); `cache_data/` opcional via `VM_PERSIST_DISK_CACHE`.
 
 ---
 
@@ -299,3 +302,5 @@ Cada task em [`tasks.md`](tasks.md) só está concluída quando:
 | 0.1 | 2026-05-29 | Rafael | Proposta inicial — fonte bbdb, tasks por variável |
 | 0.2 | 2026-05-29 | Rafael | Regra absoluta de contrato; consumidores críticos (`vencimentos.py`) |
 | 0.3 | 2026-05-29 | Rafael | Fase 1 implementada — `atualizar_tudo(data)`, `get_cdi(data)`, API `resolver_data_mercado` |
+| 0.4 | 2026-06-01 | Rafael | Fase 3 concluída — baseline/golden validados; T-016 leilões cancelada |
+| 0.5 | 2026-06-01 | Rafael | Fase 4 — scraping isolado, fallback opt-in, backup_snapshots |

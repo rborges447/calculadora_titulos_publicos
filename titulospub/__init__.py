@@ -4,7 +4,7 @@ Módulo titulospub - Sistema de Cálculo de Títulos Públicos Brasileiros
 
 Este módulo contém todas as funcionalidades para cálculo e análise de títulos públicos:
 - Classes de títulos: NTNB, LTN, LFT, NTNF, DI
-- Funções de scraping de dados de mercado
+- Funções de scraping (uso operacional/interno; produção via API + banco local)
 - Utilitários para manipulação de datas e arquivos
 - Sistema de cache e backup de dados
 
