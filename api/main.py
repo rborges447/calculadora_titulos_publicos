@@ -10,7 +10,7 @@ from titulospub.dados.orquestrador import VariaveisMercado
 
 from .logging_config import get_logger
 from .middleware.metrics import MetricsMiddleware
-from .routers import carteiras, equivalencia, lft, ltn, ntnb, ntnf, vencimentos
+from .routers import carteiras, consultas_db, equivalencia, lft, ltn, ntnb, ntnf, vencimentos
 from .utils import marcar_atualizado, precisa_atualizar_mercado, resolver_data_mercado
 
 # Logger para este módulo
@@ -77,6 +77,7 @@ app.include_router(ntnf.router)
 app.include_router(equivalencia.router)
 app.include_router(vencimentos.router)
 app.include_router(carteiras.router)
+app.include_router(consultas_db.router)
 
 
 @app.get("/", tags=["Root"])
@@ -99,7 +100,13 @@ def root():
                 },
                 "ntnf": "POST /titulos/ntnf"
             },
-            "equivalencia": "POST /equivalencia"
+            "equivalencia": "POST /equivalencia",
+            "consultas_db": {
+                "catalogo": "GET /consultas-db/catalogo",
+                "status": "GET /consultas-db/status",
+                "consultar": "POST /consultas-db/consultar",
+                "exportar_csv": "POST /consultas-db/exportar-csv",
+            },
         }
     }
 

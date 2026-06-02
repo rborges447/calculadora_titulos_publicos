@@ -9,7 +9,7 @@ Os modelos Pydantic servem para:
 """
 
 from datetime import datetime
-from typing import Optional
+from typing import Any, Literal, Optional
 
 from pydantic import BaseModel, Field
 
@@ -519,3 +519,112 @@ class CarteiraResponse(BaseModel):
     dias_liquidacao: int = Field(..., description="Dias para liquidação")
     total_titulos: int = Field(..., description="Total de títulos na carteira")
     titulos: list[TituloCarteiraData] = Field(..., description="Lista de títulos na carteira")
+
+
+# ==================== CONSULTAS DB MODELS ====================
+
+
+class ConsultaDbRequest(BaseModel):
+    """Request para consulta exploratória ou exportação CSV do gold bbdb."""
+
+    tabela: str = Field(..., description="Id da fonte no catálogo", example="cdi")
+    colunas: list[str] = Field(
+        ...,
+        min_length=1,
+        description="Colunas a retornar (whitelist no catálogo)",
+        example=["data_referencia", "cdi"],
+    )
+    data_inicio: Optional[str] = Field(
+        None,
+        description="Data inicial do filtro (YYYY-MM-DD)",
+        example="2024-01-01",
+    )
+    data_fim: Optional[str] = Field(
+        None,
+        description="Data final do filtro (YYYY-MM-DD)",
+        example="2024-12-31",
+    )
+
+
+class FonteConsultaItem(BaseModel):
+    """Metadados de uma fonte consultável no catálogo."""
+
+    id: str = Field(..., description="Identificador estável da fonte", example="cdi")
+    rotulo: str = Field(..., description="Nome amigável na UI", example="CDI")
+    reader_attr: str = Field(..., description="Atributo do GoldReader", example="cdi")
+    modo: Literal["range", "snapshot"] = Field(
+        ..., description="Modo de leitura da fonte", example="range"
+    )
+    coluna_data: Optional[str] = Field(
+        None,
+        description="Coluna de data para filtro temporal",
+        example="data_referencia",
+    )
+    colunas: list[str] = Field(
+        ...,
+        description="Colunas permitidas (whitelist)",
+        example=["data_referencia", "cdi"],
+    )
+    colunas_padrao: list[str] = Field(
+        ...,
+        description="Colunas pré-selecionadas na UI",
+        example=["data_referencia", "cdi"],
+    )
+    descricao: str = Field(..., description="Texto de ajuda", example="Taxa CDI diária")
+    data_disponivel_inicio: Optional[str] = Field(
+        None,
+        description="Primeira data com dados no banco (YYYY-MM-DD)",
+    )
+    data_disponivel_fim: Optional[str] = Field(
+        None,
+        description="Última data com dados no banco (YYYY-MM-DD)",
+    )
+
+
+class CatalogoConsultasResponse(BaseModel):
+    """Catálogo de fontes consultáveis."""
+
+    fontes: list[FonteConsultaItem] = Field(..., description="Fontes disponíveis no explorer")
+
+
+class ConsultaHistoricoResponse(BaseModel):
+    """Resultado de consulta com preview para DataTable."""
+
+    tabela: str = Field(..., description="Id da fonte consultada", example="cdi")
+    data_inicio: Optional[str] = Field(None, description="Data inicial do pedido")
+    data_fim: Optional[str] = Field(None, description="Data final do pedido")
+    colunas: list[str] = Field(..., description="Colunas retornadas")
+    total_linhas: int = Field(..., description="Total de linhas após filtros", example=365)
+    truncado: bool = Field(
+        ...,
+        description="True se o preview foi limitado",
+        example=False,
+    )
+    rows: list[dict[str, Any]] = Field(..., description="Linhas do preview")
+    data_inicio_efetiva: Optional[str] = Field(
+        None, description="Data inicial efetivamente consultada"
+    )
+    data_fim_efetiva: Optional[str] = Field(
+        None, description="Data final efetivamente consultada"
+    )
+    data_disponivel_inicio: Optional[str] = Field(
+        None, description="Primeira data disponível no banco"
+    )
+    data_disponivel_fim: Optional[str] = Field(
+        None, description="Última data disponível no banco"
+    )
+    intervalo_ajustado: bool = Field(
+        False,
+        description="True se o período foi reduzido à interseção com o banco",
+    )
+    mensagem_aviso: Optional[str] = Field(
+        None, description="Aviso quando o intervalo foi ajustado ao disponível no DB"
+    )
+
+
+class ConsultasDbStatusResponse(BaseModel):
+    """Status do SQLite gold usado pelo explorer."""
+
+    db_path: str = Field(..., description="Caminho do arquivo SQLite")
+    db_existe: bool = Field(..., description="True se o arquivo existe no disco")
+    total_fontes: int = Field(..., description="Número de fontes no catálogo", example=12)

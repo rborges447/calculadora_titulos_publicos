@@ -8,7 +8,7 @@ import dash_bootstrap_components as dbc
 
 from dash_app import config
 from dash_app.components.navbar import Navbar
-from dash_app.pages import home, ltn, lft, ntnb, ntnb_hedge, ntnf
+from dash_app.pages import consultas_db, home, lft, ltn, ntnb, ntnb_hedge, ntnf
 
 
 app = dash.Dash(
@@ -71,6 +71,8 @@ def render_page(pathname: str):
         return ntnb_hedge.layout()
     if pathname == "/ntnf":
         return ntnf.layout()
+    if pathname == "/consultas-db":
+        return consultas_db.layout()
     return home.layout()
 
 

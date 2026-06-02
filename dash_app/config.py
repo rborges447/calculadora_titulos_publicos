@@ -20,5 +20,6 @@ PAGES = {
     "lft": {"label": "LFT", "path": "/lft"},
     "ntnb": {"label": "NTNB", "path": "/ntnb"},
     "ntnf": {"label": "NTNF", "path": "/ntnf"},
+    "consultas_db": {"label": "Consultas DB", "path": "/consultas-db"},
 }
 
