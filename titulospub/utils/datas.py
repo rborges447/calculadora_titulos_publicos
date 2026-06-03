@@ -1,9 +1,13 @@
 from typing import List, Optional
 
+import os
+
 import numpy as np
 import pandas as pd
 
 from titulospub.utils.carregamento_var_globais import _carregar_feriados_se_necessario
+
+_DEFAULT_DATE_SERIES_MIN = "1990-01-01"
 
 
 def adicionar_dias_uteis(
@@ -195,6 +199,49 @@ def datas_pagamento_cupons(
         datas.append(data_prox_cupom)
         data_prox_cupom -= pd.DateOffset(months=intervalo_meses)
     return ajustar_para_proximo_dia_util(datas=np.array(datas[::-1]), feriados=feriados)
+
+
+def date_series_min() -> str:
+    """Limite inferior do ``fetch_range`` no fallback (``VM_DATE_SERIES_MIN``)."""
+    return os.getenv("VM_DATE_SERIES_MIN", _DEFAULT_DATE_SERIES_MIN).strip()
+
+
+def fetch_on_or_prior(reader, data, *, variable: str) -> pd.DataFrame:
+    """
+    Tenta ``fetch_on`` na data; se vazio, retorna linha da data mais recente <= data.
+
+    Args:
+        reader: Table reader do bbdb com ``fetch_on`` e ``fetch_range``.
+        data: Data solicitada.
+        variable: Nome da variável para mensagens de log/erro.
+
+    Returns:
+        DataFrame com uma linha (data exata ou fallback anterior).
+    """
+    data_ts = pd.Timestamp(data).normalize()
+    data_str = data_ts.strftime("%Y-%m-%d")
+
+    df = reader.fetch_on(data_str)
+    if df is not None and not df.empty:
+        return df
+
+    df = reader.fetch_range(date_series_min(), data_str)
+    if df is None or df.empty:
+        raise ValueError(
+            f"{variable}: sem dados no banco para data={data_str} "
+            "nem em datas anteriores. "
+            f"Execute bbdb.update e materialize o gold {variable} até essa data."
+        )
+
+    row = df.iloc[[-1]]
+    prior = pd.Timestamp(row["data_referencia"].iloc[0]).normalize()
+    if prior != data_ts:
+        print(
+            f"[AVISO] {variable}: data {data_str} indisponível; "
+            f"usando {prior.date()}."
+        )
+
+    return row
 
 
 # Teste local
